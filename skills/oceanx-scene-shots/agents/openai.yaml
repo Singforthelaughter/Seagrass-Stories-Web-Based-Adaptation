@@ -1,0 +1,6 @@
+interface:
+  display_name: "OceanX Scene Shots"
+  short_description: "Generate photorealistic photos of people using an OceanX web experience at an exhibition or at home"
+  default_prompt: "Use $oceanx-scene-shots to generate photorealistic photos of people using this OceanX web experience in context."
+policy:
+  allow_implicit_invocation: true

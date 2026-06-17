@@ -1,0 +1,6 @@
+interface:
+  display_name: "OceanX Storyboards"
+  short_description: "Generate clean numbered stick-figure storyboards for OceanX web experiences and ocean-education games"
+  default_prompt: "Use $oceanx-storyboards to storyboard this OceanX web experience into a clean numbered process strip."
+policy:
+  allow_implicit_invocation: true

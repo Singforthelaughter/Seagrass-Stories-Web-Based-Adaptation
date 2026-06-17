@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Moodboard Studio</title>
+<style>
+  :root {
+    --bg: #0b1726;
+    --panel: #11233a;
+    --panel-2: #16304d;
+    --line: #20364f;
+    --text: #e8f0f8;
+    --muted: #8aa3bd;
+    --accent: #19c6c6;
+    --accent-2: #2e7dd1;
+    --danger: #ff6b6b;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 18px 24px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  header .badge { margin-left: auto; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  header .badge.ok { color: var(--accent); border-color: var(--accent); }
+  header .badge.bad { color: var(--danger); border-color: var(--danger); }
+  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 0; height: calc(100vh - 60px); }
+  .controls { padding: 20px; border-right: 1px solid var(--line); overflow-y: auto; }
+  .gallery-wrap { padding: 20px; overflow-y: auto; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .5px; }
+  textarea, input, select {
+    width: 100%; background: var(--panel); color: var(--text);
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 130px; line-height: 1.5; }
+  textarea#advanced { min-height: 70px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+  .hidden { display: none; }
+  button.primary {
+    width: 100%; margin-top: 18px; padding: 12px; border: none; border-radius: 10px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color: #04121f; font-weight: 700; font-size: 15px; cursor: pointer;
+  }
+  button.primary:disabled { opacity: .55; cursor: not-allowed; }
+  .status { margin-top: 12px; font-size: 13px; min-height: 18px; }
+  .status.err { color: var(--danger); }
+  .status.work { color: var(--accent); }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .card img { width: 100%; display: block; background: #000; cursor: zoom-in; }
+  .card .meta { padding: 10px 12px; }
+  .card .meta .model { font-size: 11px; color: var(--accent); margin-bottom: 4px; }
+  .card .meta .prompt { font-size: 12px; color: var(--muted); max-height: 54px; overflow: hidden; }
+  .card .meta .actions { margin-top: 8px; display: flex; gap: 10px; }
+  .card .meta .actions a, .card .meta .actions button {
+    font-size: 11px; color: var(--text); background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 6px; padding: 4px 8px; text-decoration: none; cursor: pointer;
+  }
+  .empty { color: var(--muted); font-size: 14px; padding: 40px; text-align: center; }
+  .skeleton { aspect-ratio: 16/9; background: linear-gradient(90deg, var(--panel), var(--panel-2), var(--panel)); background-size: 200% 100%; animation: sh 1.2s infinite; border-radius: var(--radius); }
+  @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  /* lightbox */
+  #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; cursor: zoom-out; z-index: 50; }
+  #lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 8px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🎨 Moodboard Studio</h1>
+    <span class="sub">storyboard / moodboard image generation · local</span>
+    <span id="tokenBadge" class="badge">checking…</span>
+  </header>
+
+  <div class="layout">
+    <section class="controls">
+      <label for="prompt">Prompt</label>
+      <textarea id="prompt" placeholder="Describe the image…"></textarea>
+
+      <label for="model">Model</label>
+      <select id="model"></select>
+      <input id="modelCustom" class="hidden" placeholder="owner/model-name" style="margin-top:8px" />
+
+      <div class="row">
+        <div>
+          <label for="aspect">Aspect ratio</label>
+          <select id="aspect"></select>
+        </div>
+      </div>
+
+      <details>
+        <summary>Advanced model inputs (JSON)</summary>
+        <label for="advanced" style="margin-top:8px">e.g. {"quality":"high","output_format":"png"}</label>
+        <textarea id="advanced" placeholder='{ }'></textarea>
+      </details>
+
+      <button id="go" class="primary">Generate</button>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="gallery-wrap">
+      <div id="gallery" class="gallery"></div>
+    </section>
+  </div>
+
+  <div id="lightbox"><img id="lightboxImg" alt="" /></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let CONFIG = { models: [], aspect_ratios: [], has_token: false };
+
+async function loadConfig() {
+  CONFIG = await (await fetch("/api/config")).json();
+  const modelSel = $("model");
+  CONFIG.models.forEach(m => modelSel.add(new Option(m, m)));
+  modelSel.add(new Option("Custom…", "__custom__"));
+  modelSel.onchange = () => {
+    $("modelCustom").classList.toggle("hidden", modelSel.value !== "__custom__");
+  };
+  const aSel = $("aspect");
+  CONFIG.aspect_ratios.forEach(a => aSel.add(new Option(a, a)));
+
+  const badge = $("tokenBadge");
+  if (CONFIG.has_token) { badge.textContent = "API key: set"; badge.className = "badge ok"; }
+  else { badge.textContent = "API key: missing"; badge.className = "badge bad"; }
+}
+
+function selectedModel() {
+  const v = $("model").value;
+  return v === "__custom__" ? $("modelCustom").value.trim() : v;
+}
+
+function cardHTML(item) {
+  const url = "/outputs/" + item.file;
+  const prompt = (item.prompt || "").replace(/</g, "&lt;");
+  return `<div class="card">
+    <img src="${url}" alt="" onclick="openLightbox('${url}')" />
+    <div class="meta">
+      <div class="model">${item.model || ""} · ${item.aspect_ratio || ""}</div>
+      <div class="prompt">${prompt}</div>
+      <div class="actions">
+        <a href="${url}" download>Download</a>
+        <button onclick="reusePrompt(${JSON.stringify(prompt).replace(/"/g,'&quot;')})">Reuse prompt</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function reusePrompt(p) { $("prompt").value = p; window.scrollTo(0,0); }
+
+async function loadGallery() {
+  const { items } = await (await fetch("/api/gallery")).json();
+  const g = $("gallery");
+  if (!items.length) { g.innerHTML = '<div class="empty">No images yet. Generate your first one →</div>'; return; }
+  g.innerHTML = items.map(cardHTML).join("");
+}
+
+function openLightbox(url) {
+  $("lightboxImg").src = url; $("lightbox").style.display = "flex";
+}
+$("lightbox").onclick = () => { $("lightbox").style.display = "none"; };
+
+async function generate() {
+  const prompt = $("prompt").value.trim();
+  const model = selectedModel();
+  const aspect_ratio = $("aspect").value;
+  const status = $("status");
+
+  if (!prompt) { status.textContent = "Enter a prompt first."; status.className = "status err"; return; }
+  if (!model) { status.textContent = "Pick or enter a model."; status.className = "status err"; return; }
+
+  let extra = {};
+  const advRaw = $("advanced").value.trim();
+  if (advRaw) {
+    try { extra = JSON.parse(advRaw); }
+    catch (e) { status.textContent = "Advanced inputs must be valid JSON."; status.className = "status err"; return; }
+  }
+
+  $("go").disabled = true;
+  status.textContent = "Generating… (this can take 10–60s)"; status.className = "status work";
+  // show a skeleton at the top of the gallery
+  const g = $("gallery");
+  if (g.querySelector(".empty")) g.innerHTML = "";
+  g.insertAdjacentHTML("afterbegin", '<div class="skeleton" id="sk"></div>');
+
+  try {
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, model, aspect_ratio, extra }),
+    });
+    const data = await res.json();
+    $("sk")?.remove();
+    if (!res.ok) throw new Error(data.error || "Generation failed.");
+    status.textContent = `Done — ${data.items.length} image(s).`; status.className = "status work";
+    await loadGallery();
+  } catch (e) {
+    $("sk")?.remove();
+    status.textContent = e.message; status.className = "status err";
+  } finally {
+    $("go").disabled = false;
+  }
+}
+
+$("go").onclick = generate;
+loadConfig().then(loadGallery);
+</script>
+</body>
+</html>

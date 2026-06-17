@@ -1,0 +1,5 @@
+# Calibration images live here locally but are not committed.
+# Keep the folder + its docs tracked; ignore everything else.
+*
+!.gitignore
+!README.md

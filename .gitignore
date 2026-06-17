@@ -1,0 +1,6 @@
+# Secrets — never commit API keys or env files
+.env
+.env.*
+*.env
+secrets.*
+.replicate
