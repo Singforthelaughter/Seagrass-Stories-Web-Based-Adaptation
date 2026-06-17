@@ -7,7 +7,7 @@ script. The model is the user's choice (`--model` or `$REPLICATE_MODEL`); auth v
 `$REPLICATE_API_TOKEN`. Text prompt only — no reference images.
 
 ```bash
-python scripts/generate.py --prompt-file prompt.txt --aspect-ratio 3:2 \
+python3 scripts/generate.py --prompt-file prompt.txt --aspect-ratio 3:2 \
   --out assets/output/<slug>/01-<slug>-exhibition.png
 # add model options as needed, e.g. --input quality=high
 ```

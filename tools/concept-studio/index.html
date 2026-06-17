@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Concept Studio</title>
+<style>
+  :root {
+    --bg: #0b1726; --panel: #11233a; --panel-2: #16304d; --line: #20364f;
+    --text: #e8f0f8; --muted: #8aa3bd; --accent: #19c6c6; --accent-2: #2e7dd1;
+    --danger: #ff6b6b; --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  header { padding: 18px 24px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 12px; }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  header .badge { margin-left: auto; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  header .badge.ok { color: var(--accent); border-color: var(--accent); }
+  header .badge.bad { color: var(--danger); border-color: var(--danger); }
+  .layout { display: grid; grid-template-columns: 400px 1fr; height: calc(100vh - 60px); }
+  .controls { padding: 20px; border-right: 1px solid var(--line); overflow-y: auto; }
+  .gallery-wrap { padding: 20px; overflow-y: auto; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .5px; }
+  textarea, input, select { width: 100%; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit; }
+  textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  .hidden { display: none; }
+  .seg { display: flex; gap: 6px; margin-top: 6px; }
+  .seg button { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 8px; font-size: 13px; cursor: pointer; }
+  .seg button.on { background: var(--panel-2); color: var(--text); border-color: var(--accent); }
+
+  #params { margin-top: 6px; border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 14px 14px; background: rgba(255,255,255,.02); }
+  #params .phead { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 12px 0 4px; }
+  #params .loading { color: var(--muted); font-size: 13px; padding: 12px 0; }
+  .field { margin-top: 10px; }
+  .field label { margin: 0 0 5px; }
+  .field .desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.3; }
+  .field.check { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .field.check input { width: auto; }
+  .field.check label { margin: 0; }
+  .kv { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  .kv input { flex: 1; }
+  .kv .del { width: 34px; flex: none; cursor: pointer; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); border-radius: 8px; }
+  .addkv { margin-top: 10px; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 7px 12px; cursor: pointer; font-size: 13px; }
+
+  button.primary { width: 100%; margin-top: 18px; padding: 12px; border: none; border-radius: 10px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: #04121f; font-weight: 700; font-size: 15px; cursor: pointer; }
+  button.primary:disabled { opacity: .55; cursor: not-allowed; }
+  .status { margin-top: 12px; font-size: 13px; min-height: 18px; }
+  .status.err { color: var(--danger); }
+  .status.work { color: var(--accent); }
+
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .card img { width: 100%; display: block; background: #000; cursor: zoom-in; }
+  .card .meta { padding: 10px 12px; }
+  .card .meta .model { font-size: 11px; color: var(--accent); margin-bottom: 4px; }
+  .card .meta .prompt { font-size: 12px; color: var(--muted); max-height: 54px; overflow: hidden; }
+  .card .meta .actions { margin-top: 8px; display: flex; gap: 10px; }
+  .card .meta .actions a, .card .meta .actions button { font-size: 11px; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; text-decoration: none; cursor: pointer; }
+  .empty { color: var(--muted); font-size: 14px; padding: 40px; text-align: center; line-height: 1.5; }
+  .skeleton { aspect-ratio: 16/9; background: linear-gradient(90deg, var(--panel), var(--panel-2), var(--panel)); background-size: 200% 100%; animation: sh 1.2s infinite; border-radius: var(--radius); }
+  @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; cursor: zoom-out; z-index: 50; }
+  #lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 8px; }
+  code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🎨 Concept Studio</h1>
+    <span class="sub">storyboards · scene shots · concept art — local</span>
+    <span id="tokenBadge" class="badge">checking…</span>
+  </header>
+
+  <div class="layout">
+    <section class="controls">
+      <label>Style</label>
+      <div class="seg" id="styleSeg">
+        <button data-style="freeform" class="on">Freeform</button>
+        <button data-style="storyboard">Storyboard</button>
+        <button data-style="scene">Scene shot</button>
+      </div>
+
+      <label for="prompt" id="promptLabel">Prompt</label>
+      <textarea id="prompt" placeholder="Describe the image…"></textarea>
+      <div class="hint" id="promptHint"></div>
+
+      <label for="model">Model</label>
+      <select id="model"></select>
+      <input id="modelCustom" class="hidden" placeholder="owner/model-name" style="margin-top:8px" />
+
+      <label style="margin-bottom:0">Parameters</label>
+      <div id="params"></div>
+
+      <button id="go" class="primary">Generate</button>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="gallery-wrap"><div id="gallery" class="gallery"></div></section>
+  </div>
+
+  <div id="lightbox"><img id="lightboxImg" alt="" /></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let CONFIG = { models: [], has_token: false };
+let STYLE = "freeform";
+
+// Condensed style preambles. In storyboard/scene mode the user types only the
+// SUBJECT and we wrap it with the matching style block (mirrors the two skills).
+const STYLE_PREAMBLES = {
+  storyboard: (subject) =>
+`Generate one wide horizontal process-storyboard illustration.
+Visual DNA: clean white background, minimalist black line-art, thin even lines, lots of white space, calm science-museum / product-explainer feel. No photorealism, no 3D, no detailed faces, no stock-vector flat style, no cute mascot, no UI mockup, no shadows or textures.
+Layout: a single wide strip of numbered panels, left to right. Each panel has a filled dark-navy circle with a white numeral and a bold navy step title; chunky teal/cyan block arrows point between panels.
+Actor: a minimalist black stick-figure person performs the core action in every panel (placing, pointing, holding a tablet, reacting) — the figure IS the action.
+Color: navy for circles/titles/structure, teal for arrows/highlights, soft light-blue washes for screens/water/AR, a warm accent on at most one or two tiny elements; stick figures stay black line-art.
+Subject / steps to depict:
+${subject}
+Constraints: one coherent left-to-right journey, generous whitespace, numbered circles in order, teal arrows, clean white background, a few short labels at most. Clear in seconds, friendly, not childish, not photoreal, not a UI screenshot.`,
+  scene: (subject) =>
+`Generate one photorealistic, documentary-style photograph.
+Photographic look: realistic editorial photography, full-frame, shallow depth of field, natural light, candid moment, cinematic but believable. Not an illustration, not a 3D render, no plastic skin, no stock-photo posing, no fake hologram, no watermark, no added caption text.
+Show real people genuinely using an OceanX web experience in context — a museum/exhibition (dim blue, screen-lit faces, blurred gallery) or a cozy home (warm daylight). The device shows the project's real on-screen content (its UI, charts, simulator, or game). Authentic varied casting; one clear primary actor mid-interaction.
+Subject / scene to depict:
+${subject}
+Constraints: photorealistic, natural lighting for the setting, both the person and the screen readable, no uncanny faces, no illustration/CGI look.`,
+};
+
+const STYLE_HINTS = {
+  freeform: "Write the full prompt yourself.",
+  storyboard: "Type just the SUBJECT or the steps (e.g. \"the seagrass game loop: deploy baskets → plant → life returns → emoji a friend\"). The studio adds the line-art storyboard style.",
+  scene: "Type just the SUBJECT (e.g. \"kids at a museum kiosk using the coral bleach simulator\"). The studio adds the photoreal scene-shot style.",
+};
+
+// Minimal offline fallback schemas (used only if /api/model-schema can't be reached).
+const FALLBACK_SCHEMAS = {
+  "openai/gpt-image-2": [
+    { key:"aspect_ratio", type:"select", options:["1:1","3:2","2:3","16:9","9:16","auto"], default:"3:2" },
+    { key:"quality", type:"select", options:["low","medium","high","auto"], default:"auto" },
+  ],
+  "google/nano-banana-pro": [
+    { key:"aspect_ratio", type:"select", options:["1:1","2:3","3:2","3:4","4:3","9:16","16:9","21:9"], default:"4:3" },
+    { key:"resolution", type:"select", options:["1K","2K","4K"], default:"2K" },
+  ],
+};
+
+async function loadConfig() {
+  let offline = false;
+  try {
+    const res = await fetch("/api/config");
+    if (!res.ok) throw 0;
+    CONFIG = await res.json();
+  } catch (e) { offline = true; CONFIG = { models: Object.keys(FALLBACK_SCHEMAS), has_token: false }; }
+
+  const modelSel = $("model");
+  modelSel.innerHTML = "";
+  const models = (CONFIG.models && CONFIG.models.length) ? CONFIG.models : Object.keys(FALLBACK_SCHEMAS);
+  models.forEach(m => modelSel.add(new Option(m, m)));
+  modelSel.add(new Option("Custom…", "__custom__"));
+  modelSel.onchange = onModelChange;
+
+  const badge = $("tokenBadge");
+  if (offline) { badge.textContent = "server not connected — run python3 server.py"; badge.className = "badge bad"; }
+  else if (CONFIG.has_token) { badge.textContent = "API key: set"; badge.className = "badge ok"; }
+  else { badge.textContent = "API key: missing"; badge.className = "badge bad"; }
+
+  onModelChange();
+}
+
+// style segmented control
+$("styleSeg").querySelectorAll("button").forEach(b => {
+  b.onclick = () => {
+    STYLE = b.dataset.style;
+    $("styleSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+    $("promptLabel").textContent = STYLE === "freeform" ? "Prompt" : "Subject";
+    $("prompt").placeholder = STYLE === "freeform" ? "Describe the image…" : "Describe just the subject…";
+    $("promptHint").textContent = STYLE_HINTS[STYLE];
+  };
+});
+$("promptHint").textContent = STYLE_HINTS.freeform;
+
+function selectedModel() {
+  const v = $("model").value;
+  return v === "__custom__" ? $("modelCustom").value.trim() : v;
+}
+
+async function onModelChange() {
+  const isCustom = $("model").value === "__custom__";
+  $("modelCustom").classList.toggle("hidden", !isCustom);
+  if (isCustom) { renderCustomParams(); return; }
+  await renderDiscoveredParams($("model").value);
+}
+
+async function renderDiscoveredParams(model) {
+  const c = $("params");
+  c.innerHTML = '<div class="loading">Loading parameters…</div>';
+  let fields = null;
+  try {
+    const res = await fetch("/api/model-schema?model=" + encodeURIComponent(model));
+    const data = await res.json();
+    if (res.ok && data.fields) fields = data.fields;
+  } catch (e) { /* fall through */ }
+  if (!fields) fields = FALLBACK_SCHEMAS[model] || null;
+  if (!fields) { renderCustomParams("Couldn't load this model's parameters — add them manually:"); return; }
+  c.innerHTML = fields.map(fieldHTML).join("");
+}
+
+function fieldHTML(f) {
+  const desc = f.description ? `<div class="desc">${(f.description+"").replace(/</g,"&lt;")}</div>` : "";
+  if (f.type === "select") {
+    const opts = f.options.map(o => `<option value="${o}"${o===f.default?" selected":""}>${o}</option>`).join("");
+    return `<div class="field"><label>${f.label||f.key}</label><select data-pkey="${f.key}" data-ptype="select">${opts}</select>${desc}</div>`;
+  }
+  if (f.type === "number") {
+    const val = (f.default ?? "");
+    return `<div class="field"><label>${f.label||f.key}</label><input type="number" data-pkey="${f.key}" data-ptype="number" value="${val}" min="${f.min ?? ""}" max="${f.max ?? ""}" step="${f.step ?? 1}" />${desc}</div>`;
+  }
+  if (f.type === "checkbox") {
+    return `<div class="field check"><input type="checkbox" id="p_${f.key}" data-pkey="${f.key}" data-ptype="checkbox"${f.default?" checked":""} /><label for="p_${f.key}">${f.label||f.key}</label>${desc}</div>`;
+  }
+  return `<div class="field"><label>${f.label||f.key}</label><input type="text" data-pkey="${f.key}" data-ptype="text" value="${f.default ?? ""}" />${desc}</div>`;
+}
+
+function renderCustomParams(headline = "Custom parameters") {
+  const c = $("params");
+  c.innerHTML = `<div class="phead">${headline}</div><div id="kvRows"></div><button type="button" class="addkv" id="addKv">+ Add parameter</button>`;
+  $("addKv").onclick = () => addKvRow();
+  addKvRow();
+}
+function addKvRow(key = "", val = "") {
+  const row = document.createElement("div");
+  row.className = "kv";
+  row.innerHTML = `<input class="kv-key" placeholder="key" value="${key}" /><input class="kv-val" placeholder="value" value="${val}" /><button type="button" class="del">✕</button>`;
+  row.querySelector(".del").onclick = () => row.remove();
+  $("kvRows").appendChild(row);
+}
+function inferType(raw) {
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  if (raw !== "" && !isNaN(Number(raw))) return Number(raw);
+  return raw;
+}
+function collectParams() {
+  const params = {};
+  document.querySelectorAll("#params [data-pkey]").forEach(el => {
+    const key = el.dataset.pkey, type = el.dataset.ptype;
+    if (type === "checkbox") { params[key] = el.checked; return; }
+    if (type === "number") { if (el.value === "") return; params[key] = Number(el.value); return; }
+    if (el.value === "") return;
+    params[key] = el.value;
+  });
+  document.querySelectorAll("#params .kv").forEach(row => {
+    const k = row.querySelector(".kv-key").value.trim();
+    const v = row.querySelector(".kv-val").value.trim();
+    if (!k || v === "") return;
+    params[k] = inferType(v);
+  });
+  return params;
+}
+
+function buildPrompt() {
+  const raw = $("prompt").value.trim();
+  if (!raw) return "";
+  if (STYLE === "freeform") return raw;
+  return STYLE_PREAMBLES[STYLE](raw);
+}
+
+function cardHTML(item) {
+  const url = "/outputs/" + item.file;
+  const prompt = (item.prompt || "").replace(/</g, "&lt;");
+  return `<div class="card"><img src="${url}" onclick="openLightbox('${url}')" />
+    <div class="meta"><div class="model">${item.model||""} · ${item.aspect_ratio||""}</div>
+    <div class="prompt">${prompt}</div>
+    <div class="actions"><a href="${url}" download>Download</a>
+    <button onclick="reusePrompt(${JSON.stringify(prompt).replace(/"/g,'&quot;')})">Reuse prompt</button></div></div></div>`;
+}
+function reusePrompt(p) { $("styleSeg").querySelector('[data-style="freeform"]').click(); $("prompt").value = p; window.scrollTo(0,0); }
+
+async function loadGallery() {
+  const g = $("gallery");
+  let items = [];
+  try {
+    const res = await fetch("/api/gallery");
+    if (!res.ok) throw 0;
+    items = (await res.json()).items || [];
+  } catch (e) {
+    g.innerHTML = '<div class="empty">Not connected to the server. Run <code>python3 server.py</code> and open <b>the printed localhost URL</b> in your browser (the editor preview panel can\'t run the backend).</div>';
+    return;
+  }
+  g.innerHTML = items.length ? items.map(cardHTML).join("") : '<div class="empty">No images yet. Generate your first one →</div>';
+}
+
+function openLightbox(url) { $("lightboxImg").src = url; $("lightbox").style.display = "flex"; }
+$("lightbox").onclick = () => { $("lightbox").style.display = "none"; };
+
+async function generate() {
+  const prompt = buildPrompt();
+  const model = selectedModel();
+  const status = $("status");
+  if (!prompt) { status.textContent = "Enter a prompt/subject first."; status.className = "status err"; return; }
+  if (!model) { status.textContent = "Pick or enter a model."; status.className = "status err"; return; }
+  const params = collectParams();
+
+  $("go").disabled = true;
+  status.textContent = "Generating… (10–60s)"; status.className = "status work";
+  const g = $("gallery");
+  if (g.querySelector(".empty")) g.innerHTML = "";
+  g.insertAdjacentHTML("afterbegin", '<div class="skeleton" id="sk"></div>');
+  try {
+    const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, model, params }) });
+    const data = await res.json();
+    $("sk")?.remove();
+    if (!res.ok) throw new Error(data.error || "Generation failed.");
+    status.textContent = `Done — ${data.items.length} image(s).`; status.className = "status work";
+    await loadGallery();
+  } catch (e) { $("sk")?.remove(); status.textContent = e.message; status.className = "status err"; }
+  finally { $("go").disabled = false; }
+}
+$("go").onclick = generate;
+loadConfig().then(loadGallery);
+</script>
+</body>
+</html>

@@ -57,20 +57,21 @@ Use $oceanx-storyboards to storyboard this OceanX web experience into a clean nu
 
 Images render through [Replicate](https://replicate.com) via `scripts/generate.py`. **You choose the model** — the script never hardcodes one.
 
+The script uses only the **Python standard library** (it calls Replicate's HTTP API directly), so there's **no `pip install`** — it runs as-is on Claude Code (via Bash), Codex, or any shell with Python 3 + a token.
+
 ```bash
-pip install replicate
 export REPLICATE_API_TOKEN=your_token
 export REPLICATE_MODEL=google/nano-banana-pro   # or openai/gpt-image-2, or any image model
 
-python scripts/generate.py \
+python3 scripts/generate.py \
   --prompt-file prompt.txt \
   --aspect-ratio 16:9 \
   --out assets/output/coral-recognition/01-coral.png
 ```
 
-- Set the model with `REPLICATE_MODEL` or per-call `--model`.
+- Set the model with `REPLICATE_MODEL` or per-call `--model` (`owner/name`, or `owner/name:version` for pinned community models).
 - Add model-specific options with repeatable `--input key=value` (e.g. `--input output_format=png`), value parsed as JSON when possible.
-- Handles both Replicate output shapes — list (`gpt-image-2`) and single (`nano-banana-pro`).
+- If the model returns multiple images, they're saved as `…-1.png`, `…-2.png`.
 - Generates from the text prompt only; no reference images are sent.
 
 ## Usage
@@ -109,7 +110,7 @@ oceanx-storyboards/
 │   └── openai.yaml          Codex registration
 ├── scripts/
 │   ├── generate.py          Replicate renderer (model is yours to set)
-│   └── requirements.txt     pip install replicate
+│   └── requirements.txt     (none — stdlib only)
 ├── references/
 │   ├── style-dna.md         palette + must/never rules
 │   ├── stick-figure-cast.md the actors + poses + forbidden treatments

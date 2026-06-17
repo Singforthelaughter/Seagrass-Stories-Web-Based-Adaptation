@@ -1,0 +1,2 @@
+# No third-party packages required — Concept Studio uses only the Python standard library.
+# You only need Python 3 and a REPLICATE_API_TOKEN in the environment (or a .env).

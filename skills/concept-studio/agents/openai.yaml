@@ -1,0 +1,6 @@
+interface:
+  display_name: "Concept Studio"
+  short_description: "Launch the local browser studio for storyboard, scene-shot, and concept image generation"
+  default_prompt: "Use $concept-studio to launch the local Concept Studio so I can generate images in a UI."
+policy:
+  allow_implicit_invocation: true

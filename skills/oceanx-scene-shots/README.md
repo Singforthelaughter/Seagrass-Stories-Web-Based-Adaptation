@@ -53,20 +53,21 @@ Use $oceanx-scene-shots to generate photorealistic photos of people using this O
 
 Images render through [Replicate](https://replicate.com) via `scripts/generate.py`. **You choose the model** — the script never hardcodes one.
 
+The script uses only the **Python standard library** (it calls Replicate's HTTP API directly), so there's **no `pip install`** — it runs as-is on Claude Code (via Bash), Codex, or any shell with Python 3 + a token.
+
 ```bash
-pip install replicate
 export REPLICATE_API_TOKEN=your_token
 export REPLICATE_MODEL=openai/gpt-image-2   # or google/nano-banana-pro, or any image model
 
-python scripts/generate.py \
+python3 scripts/generate.py \
   --prompt-file prompt.txt \
   --aspect-ratio 3:2 \
   --out assets/output/coral-simulator/01-exhibition-kiosk.png
 ```
 
-- Set the model with `REPLICATE_MODEL` or per-call `--model`.
+- Set the model with `REPLICATE_MODEL` or per-call `--model` (`owner/name`, or `owner/name:version` for pinned community models).
 - Add model-specific options with repeatable `--input key=value` (e.g. `--input quality=high`).
-- Handles both Replicate output shapes — list (`gpt-image-2`) and single (`nano-banana-pro`).
+- If the model returns multiple images, they're saved as `…-1.png`, `…-2.png`.
 - Generates from the text prompt only; no reference images are sent.
 
 ## Usage
@@ -102,7 +103,7 @@ oceanx-scene-shots/
 │   └── openai.yaml           Codex registration
 ├── scripts/
 │   ├── generate.py           Replicate renderer (model is yours to set)
-│   └── requirements.txt      pip install replicate
+│   └── requirements.txt      (none — stdlib only)
 ├── references/
 │   ├── photo-style.md        realism, lighting, lens, never-rules
 │   ├── cast-and-settings.md  who's in the shot + exhibition vs. home

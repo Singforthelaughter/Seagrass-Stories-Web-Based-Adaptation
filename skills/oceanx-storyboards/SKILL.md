@@ -22,7 +22,28 @@ Load on demand. Do not stuff them all into context at once:
 - `references/qa-checklist.md` — post-generation pass/fail and iteration rules.
 - `assets/examples/` — low-frequency style calibration only. Do not copy a panel's exact composition, props, or labels.
 
+## Generating images (runtime)
+
+This skill does **not** assume a built-in image tool. It ships its own renderer: `scripts/generate.py`, which calls the Replicate HTTP API using only the Python standard library — so it runs the same way on **Claude Code** (via the Bash tool), Codex, or a local shell, with no `pip install`.
+
+Preflight, every time before generating:
+
+1. Confirm `REPLICATE_API_TOKEN` is set in the environment. If it's missing, tell the user to `export REPLICATE_API_TOKEN=...` (or source a `.env`) and stop — do not ask for or print the key.
+2. Confirm a model is chosen — `REPLICATE_MODEL` or a `--model` value (e.g. `openai/gpt-image-2`, `google/nano-banana-pro`). If neither is set, ask the user which model to run; never hardcode one.
+
+Run the script with the path to *this skill's* `scripts/generate.py` (resolve it relative to this SKILL.md's directory; on Claude Code that's typically `~/.claude/skills/oceanx-storyboards/scripts/generate.py`). Save outputs under **this skill's own folder**: `assets/output/<experience-slug>/` (it's git-ignored). If a host *does* provide a built-in image tool, you may use that instead with the same filled prompt.
+
 ## Workflow
+
+### 0. Accept any of three input modes
+
+The user can give you as little as they like — meet them where they are:
+
+- **Brief / one-liner** — e.g. "the seagrass game loop" or "how the coral simulator works". Expand it yourself into a full storyboard using `prompt-template.md` + `style-dna.md`. The user supplies the idea; the skill supplies the style.
+- **"Read the project"** — the user points you at files ("read the README", "look at this folder", "use the design doc") or just says "use the project". Read the README, design docs, scripts, and relevant code to work out what the experience does, its screens/UI, and the user journey — then continue to the shot list. Prefer real project detail over guesses; if something key is missing, ask one focused question.
+- **Full prompt** — the user pastes a complete prompt or exact panel breakdown. Respect it; just apply the style and render.
+
+Then proceed with digest → shot list → generate.
 
 ### 1. Digest the experience
 
@@ -51,16 +72,17 @@ Default 3–6 panels. Very short experiences: 2–3. Long flows: don't casually 
 
 If the user clearly says "generate / make it / produce the storyboard", don't stop to confirm — generate **each panel-strip as its own image** via Replicate. Do not try to pack unrelated storyboards into one render.
 
-Render with the bundled script (it reads a prompt and writes a PNG):
+Render with the bundled script (stdlib only — reads a prompt, writes a PNG). See "Generating images (runtime)" above for the preflight. Write the filled prompt to a temp file, then:
 
 ```bash
-python scripts/generate.py \
+python3 "<skill-dir>/scripts/generate.py" \
   --prompt-file <prompt.txt> \
   --aspect-ratio 16:9 \
-  --out assets/output/<experience-slug>/01-<slug>.png
+  --out "<skill-dir>/assets/output/<experience-slug>/01-<slug>.png"
+# add model options as needed, e.g. --input output_format=png
 ```
 
-The **model is the user's choice** — do not hardcode or pick one. It comes from `--model` or the `REPLICATE_MODEL` env var (e.g. `openai/gpt-image-2`, `google/nano-banana-pro`); if neither is set, ask the user which model to run. Auth needs `REPLICATE_API_TOKEN` in the environment. Pass model-specific options with repeatable `--input key=value` (e.g. `--input output_format=png`). Generate from the text prompt only — do not send reference/input images. Storyboards want a wide ratio (16:9).
+Model comes from `--model` or `REPLICATE_MODEL` (don't hardcode it). Pass model-specific options with repeatable `--input key=value`. Generate from the text prompt only — no reference images. Storyboards want a wide ratio (16:9 or wider).
 
 A "storyboard" here is usually a single wide image containing the numbered panels in sequence. Each prompt must include:
 
