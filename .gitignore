@@ -4,3 +4,6 @@
 *.env
 secrets.*
 .replicate
+
+# macOS
+.DS_Store

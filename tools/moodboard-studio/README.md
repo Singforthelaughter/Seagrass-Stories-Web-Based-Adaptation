@@ -37,11 +37,13 @@ Use a different port with `PORT=9000 python server.py`.
 
 1. Type or paste a **prompt** (the gallery's "Reuse prompt" button refills it from a past image).
 2. Pick a **model** — a preset, or "Custom…" to type any `owner/model-name`.
-3. Pick an **aspect ratio**.
-4. Optionally open **Advanced model inputs** and add model-specific params as JSON, e.g.
-   - `gpt-image-2`: `{"quality":"high","output_format":"png"}`
-   - `nano-banana-pro`: `{"resolution":"2K"}`
-5. **Generate** — a placeholder shows while it runs (10–60s); finished images appear newest-first.
+3. Edit the **parameters** below the model. Each preset shows its real inputs as dropdowns /
+   number fields / checkboxes (e.g. `gpt-image-2`: aspect ratio, quality, background, output
+   format, compression, number of images; `nano-banana-pro`: aspect ratio, resolution, output
+   format, safety filter, allow-fallback). A **custom** model shows add-your-own key/value rows.
+4. **Generate** — a placeholder shows while it runs (10–60s); finished images appear newest-first.
+
+To add a parameter list for another preset model, edit the `SCHEMAS` object in `index.html`.
 
 Generated PNGs and their metadata sidecars are saved to `outputs/` (git-ignored) and persist across restarts, so the gallery is your running moodboard.
 

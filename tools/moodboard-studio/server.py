@@ -62,8 +62,9 @@ def read_item_bytes(item):
     raise RuntimeError(f"Unexpected output item type: {type(item)!r}")
 
 
-def run_generation(prompt, model, aspect_ratio, extra):
-    """Call Replicate and save image(s) + metadata sidecars. Returns list of meta dicts."""
+def run_generation(prompt, model, params):
+    """Call Replicate and save image(s) + metadata sidecars. Returns list of meta dicts.
+    `params` is a flat dict of model inputs (aspect_ratio, quality, resolution, ...)."""
     if not os.environ.get("REPLICATE_API_TOKEN"):
         raise RuntimeError(
             "REPLICATE_API_TOKEN is not set. Export it or add it to a .env file."
@@ -74,10 +75,8 @@ def run_generation(prompt, model, aspect_ratio, extra):
         raise RuntimeError("Missing dependency. Run: pip install replicate")
 
     payload = {"prompt": prompt}
-    if aspect_ratio and str(aspect_ratio).lower() != "none":
-        payload["aspect_ratio"] = aspect_ratio
-    if extra:
-        payload.update(extra)
+    if params:
+        payload.update(params)
 
     output = replicate.run(model, input=payload)
     items = output if isinstance(output, (list, tuple)) else [output]
@@ -92,8 +91,8 @@ def run_generation(prompt, model, aspect_ratio, extra):
             "file": name,
             "prompt": prompt,
             "model": model,
-            "aspect_ratio": aspect_ratio,
-            "extra": extra or {},
+            "aspect_ratio": params.get("aspect_ratio", ""),
+            "params": params or {},
             "created": time.time(),
         }
         (OUT_DIR / f"{name}.json").write_text(json.dumps(meta))
@@ -167,20 +166,19 @@ class Handler(BaseHTTPRequestHandler):
 
         prompt = (req.get("prompt") or "").strip()
         model = (req.get("model") or "").strip()
-        aspect_ratio = req.get("aspect_ratio") or ""
-        extra = req.get("extra") or {}
+        params = req.get("params") or {}
         if not prompt:
             self._send_json({"error": "Prompt is empty."}, 400)
             return
         if not model:
             self._send_json({"error": "Pick a model to run."}, 400)
             return
-        if not isinstance(extra, dict):
-            self._send_json({"error": "Advanced inputs must be a JSON object."}, 400)
+        if not isinstance(params, dict):
+            self._send_json({"error": "Parameters must be an object."}, 400)
             return
 
         try:
-            saved = run_generation(prompt, model, aspect_ratio, extra)
+            saved = run_generation(prompt, model, params)
         except Exception as e:  # surface Replicate / config errors to the UI
             self._send_json({"error": str(e)}, 500)
             return
