@@ -4,6 +4,19 @@
 *.env
 secrets.*
 .replicate
+!.env.local.example
 
 # macOS
 .DS_Store
+
+# --- Next.js / Node ---
+/node_modules
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+.pnp
+.pnp.*
+npm-debug.log*
