@@ -70,10 +70,6 @@ A condensed version for a single wide storyboard strip (use the `oceanx-storyboa
 7. **Recover** — healthy meadow, fish/turtle/seahorse return
 8. **Together & away** — divers exchange emoji; world keeps living when they leave
 
-**Core loop (4-panel):**
-
-![Core gameplay loop — deploy, plant, life returns, connect](skills/oceanx-storyboards/assets/output/seagrass-game/01-gameplay-loop-scuba.png)
-
 ---
 
 ## Scene shots — the experience in use
