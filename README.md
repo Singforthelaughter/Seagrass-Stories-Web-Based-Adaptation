@@ -6,6 +6,10 @@ A browser/tablet 3D multiplayer game where players are **scuba divers** who rest
 - **Platform:** web / tablet / browser (touch or mouse)
 - **Stack:** Next.js + React Three Fiber (Three.js) · Supabase (Postgres + Realtime) · Vercel · realistic PBR art · AI-personalised diver textures (Replicate)
 
+![Seagrass Stories — full player journey storyboard](skills/oceanx-storyboards/assets/output/seagrass-game/02-user-journey-8panel.png)
+
+> Concept storyboard of the end-to-end player journey. (Concept visuals are AI-generated for design/pitch.)
+
 ---
 
 ## User Journey (storyboard steps)
@@ -65,6 +69,22 @@ A condensed version for a single wide storyboard strip (use the `oceanx-storyboa
 6. **Tend** — seagrass grows; ecosystem-health meter; decay pressure
 7. **Recover** — healthy meadow, fish/turtle/seahorse return
 8. **Together & away** — divers exchange emoji; world keeps living when they leave
+
+**Core loop (4-panel):**
+
+![Core gameplay loop — deploy, plant, life returns, connect](skills/oceanx-storyboards/assets/output/seagrass-game/01-gameplay-loop-scuba.png)
+
+---
+
+## Scene shots — the experience in use
+
+Concept photography of real players using Seagrass Stories on phone, tablet, and browser. (The scuba diver is the on-screen game **avatar** — the players themselves are not diving.)
+
+| Personalise the diver | Place & plant |
+| --- | --- |
+| ![A child personalising their diver on a tablet](skills/oceanx-scene-shots/assets/output/seagrass-game/01-personalise.png) | ![A player tapping the screen to place a basket and plant seagrass](skills/oceanx-scene-shots/assets/output/seagrass-game/02-place-plant.png) |
+| **Life returns** | **Playing together** |
+| ![Two kids delighted as marine life returns to the meadow](skills/oceanx-scene-shots/assets/output/seagrass-game/03-life-returns.png) | ![Two friends each on their phone, greeting each other in-game with emoji](skills/oceanx-scene-shots/assets/output/seagrass-game/04-together.png) |
 
 ---
 
