@@ -12,8 +12,10 @@ import { useGame } from "@/lib/store";
 
 const WATER_COLOR = "#0b3547";
 const SWIM_HEIGHT = 1.3; // diver height above the seafloor while playing
-const FLOAT_Y = 7; // diver floats up here while personalising (floor out of view)
+const FLOAT_Y = 16; // diver floats up here while personalising (floor well out of view)
+const VIEW_DROP = 0.9; // aim the camera below the diver so it sits higher in frame
 const FRONT_OFFSET = 0; // at yaw 0 the model already faces +Z (toward the camera)
+const REST_HEADING = Math.PI; // while playing (idle), head points away from the camera
 const SWIM_LEAN = Math.PI * 0.42; // forward tilt so the diver swims prone, not upright
 const TRANSITION_DUR = 2.4; // seconds for the personalise → playing camera move
 
@@ -72,8 +74,12 @@ function DiverRig({
 
     // --- facing: turn toward travel direction; lean forward while swimming ---
     let targetYaw = face.current.rotation.y;
-    if (playing && dx * dx + dz * dz > 4e-4) targetYaw = Math.atan2(dx, dz) + FRONT_OFFSET;
-    else if (!playing) targetYaw = FRONT_OFFSET;
+    if (playing) {
+      targetYaw =
+        dx * dx + dz * dz > 4e-4 ? Math.atan2(dx, dz) + FRONT_OFFSET : REST_HEADING;
+    } else {
+      targetYaw = FRONT_OFFSET; // face the camera while personalising
+    }
     face.current.rotation.y = THREE.MathUtils.damp(face.current.rotation.y, targetYaw, 6, dt);
     face.current.rotation.x = THREE.MathUtils.damp(face.current.rotation.x, SWIM_LEAN * e, 6, dt);
 
@@ -87,8 +93,12 @@ function DiverRig({
       }
       camera.lookAt(p.x, p.y, p.z);
     } else {
-      // OrbitControls owns the camera; keep its target on the floating diver
-      controls.current?.target.lerp(p, 1 - Math.pow(0.01, dt));
+      // OrbitControls owns the camera; aim a touch below the diver so it sits
+      // higher in the frame (above the personalise panel).
+      controls.current?.target.lerp(
+        _camGoal.set(p.x, p.y - VIEW_DROP, p.z),
+        1 - Math.pow(0.01, dt),
+      );
     }
   });
 
@@ -118,7 +128,7 @@ function Controls({
       // don't let the player tilt down far enough to reveal the seafloor
       minPolarAngle={Math.PI * 0.18}
       maxPolarAngle={Math.PI * 0.52}
-      target={[0, FLOAT_Y, 0]}
+      target={[0, FLOAT_Y - VIEW_DROP, 0]}
     />
   );
 }
@@ -130,7 +140,7 @@ export function GameExperience() {
     <Canvas
       shadows
       dpr={[1, 1.5]}
-      camera={{ position: [0, FLOAT_Y + 0.3, 4.2], fov: 46, near: 0.1, far: 200 }}
+      camera={{ position: [0, FLOAT_Y - VIEW_DROP + 0.3, 4.2], fov: 46, near: 0.1, far: 200 }}
       gl={{ antialias: true }}
     >
       <color attach="background" args={[WATER_COLOR]} />

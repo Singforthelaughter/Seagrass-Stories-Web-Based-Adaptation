@@ -90,6 +90,16 @@ export function Diver({
     const skinMat = makeMaterial(skinD, skinN, skinORM);
     const propsMat = makeMaterial(propsD, propsN, propsORM);
 
+    // The wetsuit (M_Suit) starts as a plain black material with no maps — the
+    // AI-generated texture will be applied to it later (P4). Named so it can be
+    // found and re-skinned at runtime.
+    const suitMat = new THREE.MeshStandardMaterial({
+      color: "#000000",
+      roughness: 0.7,
+      metalness: 0.05,
+    });
+    suitMat.name = "M_Suit";
+
     fbx.traverse((child) => {
       const mesh = child as THREE.Mesh;
       if (!mesh.isMesh) return;
@@ -105,7 +115,9 @@ export function Diver({
       const name = (
         Array.isArray(mesh.material) ? mesh.material[0]?.name : mesh.material?.name
       )?.toLowerCase();
-      mesh.material = name?.includes("skin") ? skinMat : propsMat;
+      if (name?.includes("suit")) mesh.material = suitMat;
+      else if (name?.includes("skin")) mesh.material = skinMat;
+      else mesh.material = propsMat;
     });
 
     // Normalize size & position deterministically: measure at scale 1,
