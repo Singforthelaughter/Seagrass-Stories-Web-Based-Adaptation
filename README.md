@@ -1,14 +1,34 @@
 # Seagrass Stories
 
-A browser/tablet 3D multiplayer game where players are **scuba divers** who restore a shared underwater **seagrass meadow**. Drop natural-material anchor baskets, plant seagrass, and keep planting faster than the environment decays. As the meadow thrives, marine life returns. It's one shared, persistent world — whoever is online dives together (up to a cap), the world keeps living while everyone's away, and players talk only through emoji.
+**Seagrass Stories** is a calm, hopeful underwater game you play in your browser or on a tablet. You're a **scuba diver** helping bring a damaged seafloor back to life. Plant seagrass, watch your meadow grow, and slowly the fish, turtles, and other sea creatures come back.
 
-- **Audience:** young adults & kids
-- **Platform:** web / tablet / browser (touch or mouse)
-- **Stack:** Next.js + React Three Fiber (Three.js) · Supabase (Postgres + Realtime) · Vercel · realistic PBR art · AI-personalised diver textures (Replicate)
+It's a **shared world**: everyone who's online is diving in the same ocean at the same time, helping each other tend the meadow. The world keeps living even when you're away — leave, come back later, and see how it's changed. There's no chat; players simply send **emoji** to say hello, thank you, or cheer each other on.
+
+**In short:** dive in → make your diver your own → plant and care for an underwater garden → bring marine life back, together.
+
+- **Who it's for:** kids and young adults — gentle, friendly, no reading required
+- **Where you play:** any web browser, on tablet or computer (tap or click)
+- **The feeling:** peaceful, rewarding, and quietly meaningful — caring for nature, together
 
 ![Seagrass Stories — full player journey storyboard](skills/oceanx-storyboards/assets/output/seagrass-game/02-user-journey-8panel.png)
 
 > Concept storyboard of the end-to-end player journey. (Concept visuals are AI-generated for design/pitch.)
+
+---
+
+## How it plays (the quick version)
+
+1. 🌊 **Start** — tap "Start Play" on a calm underwater title screen.
+2. 🤿 **Make it yours** — name your diver and design their wetsuit (an AI turns your idea into the artwork).
+3. ⬇️ **Dive in** — drop into the shared meadow and see other divers already there.
+4. 👆 **Swim** — tap the seafloor to glide around.
+5. 🧺 **Plant** — place an anchor basket, then plant seagrass in it.
+6. 🌱 **Tend** — your seagrass grows, but the ocean is always wearing it down, so keep planting to stay ahead.
+7. 🐠 **Life returns** — as the meadow gets healthier, fish, turtles, and other animals come back.
+8. 🤝 **Together** — more divers means more hands helping; say hello with emoji.
+9. 🔁 **Come back anytime** — the world keeps living while you're gone, so it's always changed when you return.
+
+For the full beat-by-beat version, see the detailed journey below.
 
 ---
 
@@ -84,13 +104,35 @@ Concept photography of real players using Seagrass Stories on phone, tablet, and
 
 ---
 
+## Tech Stack
+
+| Layer | Technology | Notes |
+| --- | --- | --- |
+| **Framework** | [Next.js 16](https://nextjs.org/) (App Router) + [React 19](https://react.dev/) | TypeScript, built with Turbopack |
+| **Language** | [TypeScript 5](https://www.typescriptlang.org/) | strict typing across app/components/lib |
+| **3D engine** | [Three.js](https://threejs.org/) `r184` | WebGL rendering |
+| **3D / React** | [React Three Fiber 9](https://r3f.docs.pmnd.rs/) + [drei 10](https://drei.docs.pmnd.rs/) | declarative scene, `useFBX`/`useTexture` loaders |
+| **Post-processing** | [@react-three/postprocessing 3](https://github.com/pmndrs/react-postprocessing) | bloom / color grade / DOF (P5) |
+| **State** | [Zustand 5](https://zustand.docs.pmnd.rs/) | local game + UI state |
+| **Styling** | [Tailwind CSS 4](https://tailwindcss.com/) | via PostCSS |
+| **Backend & data** | [Supabase](https://supabase.com/) (Postgres + Realtime) | persistence (P2) & multiplayer presence/broadcast (P3) |
+| **AI textures** | [Replicate](https://replicate.com/) | AI-generated diver wetsuit textures (P4) |
+| **Hosting** | [Vercel](https://vercel.com/) | serverless API routes + static assets, auto-deploy from `main` |
+| **Tooling** | ESLint 9 (`eslint-config-next`) | linting |
+
+> Supabase and Replicate are wired up in later phases; the current build runs entirely client-side with no required environment variables.
+
+## Deploy (Vercel)
+
+Zero-config — Next.js is auto-detected. Import the repo at [vercel.com/new](https://vercel.com/new) and deploy; every push to `main` then auto-deploys. No environment variables are required for the current build (Supabase/Replicate keys come online in P2/P4 — see [.env.local.example](.env.local.example)).
+
 ## Status & how to run
 
-Early build. Phase 0 (scaffold + swimmable placeholder diver) is in place.
+Early build. Phase 0 (scaffold + swimmable diver) is in place, now rendering the real textured diver model (`public/models/diver/`).
 
 ```bash
 npm install
 npm run dev        # → http://localhost:3000
 ```
 
-See [the build plan](~/.claude/plans/) for the phased roadmap (P0 scaffold → P1 core loop → P2 persistence → P3 multiplayer → P4 AI texture → P5 PBR/animals → P6 polish). The diver and other models are placeholders until the final GLB assets are added to `public/models/`.
+See [the build plan](~/.claude/plans/) for the phased roadmap (P0 scaffold → P1 core loop → P2 persistence → P3 multiplayer → P4 AI texture → P5 PBR/animals → P6 polish). Remaining models (seagrass, anchor basket, animals) are placeholders until their GLB assets are added to `public/models/`.
