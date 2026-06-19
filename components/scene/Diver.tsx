@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFBX, useTexture, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
+import { useGame } from "@/lib/store";
 
 /**
  * The user-provided scuba diver model (FBX) with its PBR texture sets.
@@ -41,6 +42,8 @@ export function Diver({
 }: DiverProps = {}) {
   const fbx = useFBX(MODEL);
   const { actions, names } = useAnimations(fbx.animations, fbx);
+  const suitMatRef = useRef<THREE.MeshStandardMaterial | null>(null);
+  const suitTextureUrl = useGame((s) => s.suitTextureUrl);
 
   // Auto-play the model's baked animation (the first clip), looped.
   useEffect(() => {
@@ -102,6 +105,7 @@ export function Diver({
       envMapIntensity: 1.5,
     });
     suitMat.name = "M_Suit";
+    suitMatRef.current = suitMat;
 
     fbx.traverse((child) => {
       const mesh = child as THREE.Mesh;
@@ -139,6 +143,35 @@ export function Diver({
 
     return fbx;
   }, [fbx, targetLength, skinD, skinN, skinORM, propsD, propsN, propsORM]);
+
+  // Apply (or clear) the AI-generated wetsuit texture on M_Suit.
+  useEffect(() => {
+    const mat = suitMatRef.current;
+    if (!mat) return;
+    if (!suitTextureUrl) {
+      mat.map?.dispose();
+      mat.map = null;
+      mat.color.set("#050505");
+      mat.needsUpdate = true;
+      return;
+    }
+    let disposed = false;
+    new THREE.TextureLoader().load(suitTextureUrl, (tex) => {
+      if (disposed) {
+        tex.dispose();
+        return;
+      }
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      mat.map?.dispose();
+      mat.map = tex;
+      mat.color.set("#ffffff"); // let the texture show its true colours
+      mat.needsUpdate = true;
+    });
+    return () => {
+      disposed = true;
+    };
+  }, [suitTextureUrl, model]);
 
   return (
     <group rotation={rotation}>

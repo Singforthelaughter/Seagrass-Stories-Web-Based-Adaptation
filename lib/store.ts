@@ -12,6 +12,9 @@ interface GameState {
   /** The player's chosen diver name (set on the Personalise screen). */
   username: string;
   setUsername: (name: string) => void;
+  /** AI-generated wetsuit (M_Suit) texture, as a data URL. null = plain black. */
+  suitTextureUrl: string | null;
+  setSuitTextureUrl: (url: string | null) => void;
   /**
    * Joystick movement input, each axis in [-1, 1]. x = world X, y = world Z
    * (screen-up is negative = swim away from the camera). [0,0] = idle.
@@ -25,6 +28,8 @@ export const useGame = create<GameState>((set) => ({
   setPhase: (p) => set({ phase: p }),
   username: "",
   setUsername: (name) => set({ username: name }),
+  suitTextureUrl: null,
+  setSuitTextureUrl: (url) => set({ suitTextureUrl: url }),
   move: [0, 0],
   setMove: (x, y) => set({ move: [x, y] }),
 }));
