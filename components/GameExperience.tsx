@@ -9,6 +9,7 @@ import { Seafloor } from "./scene/Seafloor";
 import { Diver } from "./scene/Diver";
 import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
 import { useGame } from "@/lib/store";
+import { smootherstep as smooth } from "@/lib/ease";
 
 const WATER_COLOR = "#0b3547";
 const SWIM_HEIGHT = 1.3; // diver height above the seafloor while playing
@@ -21,10 +22,6 @@ const TRANSITION_DUR = 3.8; // seconds for the personalise → playing camera mo
 const SWIM_SPEED = 7; // world units / second at full joystick deflection
 const SWIM_BOUND = 90; // keep the diver within the meadow
 
-// smootherstep (Ken Perlin) — zero velocity AND acceleration at both ends,
-// so the dive-in eases in and settles without any abrupt start/stop.
-const smooth = (x: number) => x * x * x * (x * (x * 6 - 15) + 10);
-
 const _camGoal = new THREE.Vector3();
 
 /**
@@ -34,15 +31,16 @@ const _camGoal = new THREE.Vector3();
  */
 function DiverRig({
   controls,
+  progress,
 }: {
   controls: React.RefObject<OrbitControlsImpl | null>;
+  progress: React.RefObject<number>; // 0 = personalise framing, 1 = full gameplay
 }) {
   const pos = useRef<THREE.Group>(null!); // world position
   const face = useRef<THREE.Group>(null!); // yaw + pitch (facing / swim lean)
   const headlamp = useRef<THREE.DirectionalLight>(null!); // follows the camera
   const headTarget = useMemo(() => new THREE.Object3D(), []);
   const { camera } = useThree();
-  const progress = useRef(0); // 0 = personalise framing, 1 = full gameplay
   const camStart = useRef<THREE.Vector3 | null>(null);
   const yawStart = useRef(0);
   const wasPlaying = useRef(false);
@@ -167,6 +165,7 @@ function Controls({
 
 export function GameExperience() {
   const controls = useRef<OrbitControlsImpl | null>(null);
+  const progress = useRef(0); // dive-in transition: 0 = personalise, 1 = playing
 
   return (
     <Canvas
@@ -193,8 +192,8 @@ export function GameExperience() {
       />
 
       <UnderwaterEnvironment />
-      <Seafloor />
-      <DiverRig controls={controls} />
+      <Seafloor progress={progress} />
+      <DiverRig controls={controls} progress={progress} />
       <Controls controls={controls} />
     </Canvas>
   );
