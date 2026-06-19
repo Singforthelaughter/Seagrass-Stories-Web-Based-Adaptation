@@ -93,7 +93,10 @@ function DiverRig({
         face.current.rotation.y = THREE.MathUtils.lerp(yawStart.current, REST_HEADING, e);
       } else {
         const targetYaw = moving ? Math.atan2(mx, mz) + FRONT_OFFSET : REST_HEADING;
-        face.current.rotation.y = THREE.MathUtils.damp(face.current.rotation.y, targetYaw, 4, dt);
+        // take the shortest way round (wrap the delta into [-PI, PI])
+        const cur = face.current.rotation.y;
+        const delta = Math.atan2(Math.sin(targetYaw - cur), Math.cos(targetYaw - cur));
+        face.current.rotation.y = THREE.MathUtils.damp(cur, cur + delta, 6, dt);
       }
       // lean is bound to the transition (and stays at full lean once swimming)
       face.current.rotation.x = SWIM_LEAN * e;

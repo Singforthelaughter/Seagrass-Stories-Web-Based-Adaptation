@@ -10,7 +10,7 @@ import { Environment, Lightformer } from "@react-three/drei";
  */
 export function UnderwaterEnvironment() {
   return (
-    <Environment resolution={256} frames={1}>
+    <Environment resolution={256} frames={1} environmentRotation={[0, Math.PI, 0]}>
       <color attach="background" args={["#0a2a36"]} />
       {/* bright surface light from above */}
       <Lightformer intensity={3} color="#eafaff" position={[0, 6, 1]} scale={[10, 10, 1]} />
