@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { useFBX, useTexture } from "@react-three/drei";
+import { useEffect, useMemo } from "react";
+import { useFBX, useTexture, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
 
 /**
@@ -24,11 +24,34 @@ const MODEL = "/models/diver/diver.fbx";
 const NORMAL_SCALE = new THREE.Vector2(1, -1);
 
 // Visual tuning — adjust if the diver looks too big/small or mis-oriented.
-const TARGET_LENGTH = 2.0; // longest dimension in world units
-const BASE_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0]; // stand → prone (swimming)
+const DEFAULT_LENGTH = 2.0; // longest dimension in world units
+// -90° about X stands the model upright (its authored axis is on its back).
+const DEFAULT_ROTATION: [number, number, number] = [-Math.PI / 2, 0, 0];
 
-export function Diver() {
+type DiverProps = {
+  /** Longest-axis size in world units. */
+  targetLength?: number;
+  /** Extra rotation applied to the model (radians). */
+  rotation?: [number, number, number];
+};
+
+export function Diver({
+  targetLength = DEFAULT_LENGTH,
+  rotation = DEFAULT_ROTATION,
+}: DiverProps = {}) {
   const fbx = useFBX(MODEL);
+  const { actions, names } = useAnimations(fbx.animations, fbx);
+
+  // Auto-play the model's baked animation (the first clip), looped.
+  useEffect(() => {
+    const first = names[0];
+    if (!first) return;
+    const action = actions[first];
+    action?.reset().setLoop(THREE.LoopRepeat, Infinity).fadeIn(0.3).play();
+    return () => {
+      action?.fadeOut(0.2);
+    };
+  }, [actions, names]);
 
   const [skinD, skinN, skinORM, propsD, propsN, propsORM] = useTexture([
     "/models/diver/T_Skin_D.jpg",
@@ -85,22 +108,25 @@ export function Diver() {
       mesh.material = name?.includes("skin") ? skinMat : propsMat;
     });
 
-    // Normalize size & position: fit longest axis to TARGET_LENGTH, center,
-    // then drop so the lowest point sits on y=0 of the wrapper group.
+    // Normalize size & position deterministically: measure at scale 1,
+    // fit the longest axis to targetLength, and center on the origin.
+    fbx.scale.set(1, 1, 1);
+    fbx.position.set(0, 0, 0);
+    fbx.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(fbx);
     const size = new THREE.Vector3();
     const center = new THREE.Vector3();
     box.getSize(size);
     box.getCenter(center);
-    const scale = TARGET_LENGTH / Math.max(size.x, size.y, size.z);
+    const scale = targetLength / Math.max(size.x, size.y, size.z);
     fbx.scale.setScalar(scale);
     fbx.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
 
     return fbx;
-  }, [fbx, skinD, skinN, skinORM, propsD, propsN, propsORM]);
+  }, [fbx, targetLength, skinD, skinN, skinORM, propsD, propsN, propsORM]);
 
   return (
-    <group rotation={BASE_ROTATION}>
+    <group rotation={rotation}>
       <primitive object={model} />
     </group>
   );

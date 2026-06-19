@@ -1,8 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Seafloor } from "./scene/Seafloor";
 import { Player } from "./scene/Player";
+import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
 
 const WATER_COLOR = "#0b3547";
 
@@ -32,8 +34,12 @@ export function GameCanvas() {
         shadow-camera-bottom={-30}
       />
 
-      <Seafloor />
-      <Player />
+      <Suspense fallback={null}>
+        {/* IBL so PBR/metal materials read correctly instead of black */}
+        <UnderwaterEnvironment />
+        <Seafloor />
+        <Player />
+      </Suspense>
     </Canvas>
   );
 }
