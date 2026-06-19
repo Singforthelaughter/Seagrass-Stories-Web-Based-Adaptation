@@ -6,6 +6,19 @@ import { useEffect, useState } from "react";
 import { useGame } from "@/lib/store";
 import { Joystick } from "@/components/ui/Joystick";
 
+const NAME_ADJ = [
+  "Coral", "Tidal", "Azure", "Kelp", "Reef", "Deep", "Marlin", "Lagoon",
+  "Pearl", "Drift", "Current", "Abyss", "Nautilus", "Manta", "Finned",
+];
+const NAME_NOUN = [
+  "Diver", "Voyager", "Explorer", "Drifter", "Ranger", "Nomad", "Wanderer",
+  "Seeker", "Pioneer", "Glider",
+];
+const randomName = () =>
+  `${NAME_ADJ[Math.floor(Math.random() * NAME_ADJ.length)]}${
+    NAME_NOUN[Math.floor(Math.random() * NAME_NOUN.length)]
+  }${Math.floor(Math.random() * 90 + 10)}`;
+
 // Three.js touches the DOM/WebGL — load the canvas client-side only.
 const GameExperience = dynamic(
   () => import("@/components/GameExperience").then((m) => m.GameExperience),
@@ -30,9 +43,11 @@ export default function PlayPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Always begin at the personalise step when this page mounts.
+  // Always begin at the personalise step when this page mounts, and give the
+  // player a ready-made name so they can skip the field entirely.
   useEffect(() => {
     setPhase("personalise");
+    setName(randomName());
   }, [setPhase]);
 
   async function generate() {
@@ -74,60 +89,80 @@ export default function PlayPage() {
 
       {/* Personalise overlay — drag to rotate, pinch to zoom; fades out on dive */}
       <div
-        className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-4 bg-gradient-to-t from-[#04161f] via-[#04161f]/80 to-transparent px-6 pb-10 pt-16 text-center transition-opacity duration-700 ${
+        className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3 bg-gradient-to-t from-[#04161f] via-[#04161f]/85 to-transparent px-5 pb-8 pt-16 transition-opacity duration-700 ${
           phase === "personalise" ? "opacity-100" : "opacity-0"
         }`}
       >
-        <h1 className="text-2xl font-bold text-white sm:text-3xl">
-          Make your diver
-        </h1>
-        <p className="-mt-2 text-xs text-[#9fc4d0]">
-          Drag to rotate · pinch to zoom
-        </p>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && diveIn()}
-          placeholder="Name your diver"
-          maxLength={20}
-          className="pointer-events-auto w-full max-w-xs rounded-full border border-white/20 bg-white/10 px-5 py-3 text-center text-base text-white placeholder-[#9fc4d0] outline-none backdrop-blur focus:border-[#19c6c6]"
-        />
+        <div className="w-full max-w-sm text-center">
+          <h1 className="text-2xl font-bold text-white sm:text-3xl">Make your diver</h1>
+          <p className="mt-1 text-xs text-[#9fc4d0]">Drag to rotate · pinch to zoom</p>
+        </div>
 
-        {/* AI wetsuit design */}
-        <div className="pointer-events-auto flex w-full max-w-xs gap-2">
-          <input
+        {/* PRIMARY: design the wetsuit with AI */}
+        <div className="pointer-events-auto w-full max-w-sm">
+          <label className="mb-1.5 block text-sm font-semibold text-white">
+            🎨 Design your wetsuit
+          </label>
+          <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && generate()}
-            placeholder="Describe your wetsuit…"
+            placeholder="e.g. coral reef camouflage, deep-sea bioluminescence, neon tiger stripes…"
             maxLength={120}
+            rows={2}
             disabled={generating}
-            className="min-w-0 flex-1 rounded-full border border-white/20 bg-white/10 px-5 py-3 text-base text-white placeholder-[#9fc4d0] outline-none backdrop-blur focus:border-[#19c6c6] disabled:opacity-60"
+            className="w-full resize-none rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-base text-white placeholder-[#7fa3b0] outline-none backdrop-blur focus:border-[#19c6c6] disabled:opacity-60"
           />
           <button
             onClick={generate}
             disabled={generating || !prompt.trim()}
-            className="shrink-0 rounded-full bg-white/15 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition active:scale-95 disabled:opacity-40"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white/15 py-3 text-base font-semibold text-white backdrop-blur transition active:scale-[0.98] disabled:opacity-40"
           >
-            {generating ? "…" : "Generate"}
+            {generating ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                Designing… (~20s)
+              </>
+            ) : suitTextureUrl ? (
+              "Regenerate ↻"
+            ) : (
+              "✨ Generate"
+            )}
+          </button>
+          <div className="mt-1.5 flex min-h-4 items-center justify-between text-xs">
+            <span className="text-rose-300">{error}</span>
+            {suitTextureUrl && !generating && (
+              <button
+                onClick={() => setSuitTextureUrl(null)}
+                className="text-[#9fc4d0] underline underline-offset-2"
+              >
+                Reset to plain suit
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* SECONDARY: optional name (pre-filled with a random one) */}
+        <div className="pointer-events-auto flex w-full max-w-sm items-center gap-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Diver name"
+            maxLength={20}
+            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-[#cfeaf2] placeholder-[#7fa3b0] outline-none backdrop-blur focus:border-[#19c6c6]"
+          />
+          <button
+            onClick={() => setName(randomName())}
+            title="Random name"
+            className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-[#cfeaf2] backdrop-blur transition active:scale-95"
+          >
+            🎲
           </button>
         </div>
-        {generating && (
-          <p className="-mt-1 text-xs text-[#9fc4d0]">Designing your wetsuit… (~20s)</p>
-        )}
-        {error && <p className="-mt-1 text-xs text-rose-300">{error}</p>}
-        {suitTextureUrl && !generating && (
-          <button
-            onClick={() => setSuitTextureUrl(null)}
-            className="pointer-events-auto -mt-1 text-xs text-[#9fc4d0] underline underline-offset-2"
-          >
-            Reset to plain suit
-          </button>
-        )}
 
+        {/* CTA */}
         <button
           onClick={diveIn}
-          className="pointer-events-auto w-full max-w-xs rounded-full bg-gradient-to-r from-[#19c6c6] to-[#2e7dd1] px-10 py-4 text-lg font-bold text-[#04121f] shadow-lg shadow-cyan-900/40 transition active:scale-95"
+          className="pointer-events-auto mt-1 w-full max-w-sm rounded-full bg-gradient-to-r from-[#19c6c6] to-[#2e7dd1] py-4 text-lg font-bold text-[#04121f] shadow-lg shadow-cyan-900/40 transition active:scale-[0.98]"
         >
           Dive in →
         </button>
