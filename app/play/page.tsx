@@ -44,6 +44,7 @@ export default function PlayPage() {
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDesigns, setShowDesigns] = useState(false);
 
   // Always begin at the personalise step when this page mounts, and give the
   // player a ready-made name so they can skip the field entirely.
@@ -88,6 +89,72 @@ export default function PlayPage() {
       >
         ← Surface
       </Link>
+
+      {/* Top-right: open the saved designs gallery */}
+      {phase === "personalise" && (
+        <button
+          onClick={() => setShowDesigns(true)}
+          className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-full bg-black/30 px-4 py-2 text-sm text-[#cfeaf2] backdrop-blur transition active:scale-95"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="9" cy="9" r="2" />
+            <path d="M21 15l-5-5L5 21" />
+          </svg>
+          Designs
+          {suitTextureHistory.length > 0 && (
+            <span className="rounded-full bg-[#19c6c6] px-1.5 text-xs font-bold text-[#04121f]">
+              {suitTextureHistory.length}
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* Saved designs popup */}
+      {showDesigns && (
+        <div
+          className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm"
+          onClick={() => setShowDesigns(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#0a2230] p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">Your designs</h2>
+              <button
+                onClick={() => setShowDesigns(false)}
+                className="rounded-full bg-white/10 px-3 py-1 text-sm text-[#cfeaf2] active:scale-95"
+              >
+                Close
+              </button>
+            </div>
+            {suitTextureHistory.length === 0 ? (
+              <p className="py-8 text-center text-sm text-[#7fa3b0]">
+                No designs yet — generate a wetsuit and it will be saved here.
+              </p>
+            ) : (
+              <div className="grid max-h-[50vh] grid-cols-3 gap-3 overflow-y-auto">
+                {suitTextureHistory.map((url, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setSuitTextureUrl(url);
+                      setShowDesigns(false);
+                    }}
+                    className={`aspect-square overflow-hidden rounded-lg border-2 transition active:scale-95 ${
+                      url === suitTextureUrl ? "border-[#19c6c6]" : "border-white/15"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`Design ${i + 1}`} className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Personalise overlay — drag to rotate, pinch to zoom; fades out on dive */}
       <div
@@ -142,44 +209,6 @@ export default function PlayPage() {
             )}
           </div>
 
-          {/* Past designs (in-memory for now; Supabase-backed later) */}
-          <div className="mt-2">
-            <p className="mb-1.5 text-left text-xs text-[#9fc4d0]">Your designs</p>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {suitTextureHistory.map((url, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSuitTextureUrl(url)}
-                  className={`h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 transition active:scale-95 ${
-                    url === suitTextureUrl
-                      ? "border-[#19c6c6]"
-                      : "border-white/15 hover:border-white/40"
-                  }`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt={`Design ${i + 1}`} className="h-full w-full object-cover" />
-                </button>
-              ))}
-              {/* empty placeholder slots so the gallery is visible before any generation */}
-              {Array.from({ length: Math.max(0, 4 - suitTextureHistory.length) }).map((_, i) => (
-                <div
-                  key={`ph-${i}`}
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-white/15 text-white/25"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <path d="M21 15l-5-5L5 21" />
-                    <circle cx="9" cy="9" r="2" />
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                  </svg>
-                </div>
-              ))}
-            </div>
-            {suitTextureHistory.length === 0 && (
-              <p className="mt-1 text-left text-[10px] text-[#7fa3b0]">
-                Generated wetsuits will appear here.
-              </p>
-            )}
-          </div>
         </div>
 
         {/* SECONDARY: optional name (pre-filled with a random one) */}
