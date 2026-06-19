@@ -93,11 +93,11 @@ export function Diver({
     const skinMat = makeMaterial(skinD, skinN, skinORM);
     const propsMat = makeMaterial(propsD, propsN, propsORM);
 
-    // The wetsuit (M_Suit) starts as a plain black material with no maps — the
+    // The wetsuit (M_Suit) starts as a plain white material with no maps — the
     // AI-generated texture will be applied to it later (P4). Named so it can be
     // found and re-skinned at runtime.
     const suitMat = new THREE.MeshStandardMaterial({
-      color: "#050505",
+      color: "#ffffff",
       // semi-matte wetsuit: enough sheen to read form, but not so mirror-like
       // that it reflects the (darker) environment on the camera-facing side.
       roughness: 0.5,
@@ -151,7 +151,7 @@ export function Diver({
     if (!suitTextureUrl) {
       mat.map?.dispose();
       mat.map = null;
-      mat.color.set("#050505");
+      mat.color.set("#ffffff");
       mat.needsUpdate = true;
       return;
     }
