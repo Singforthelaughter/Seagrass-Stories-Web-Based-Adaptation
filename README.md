@@ -120,11 +120,53 @@ Concept photography of real players using Seagrass Stories on phone, tablet, and
 | **Hosting** | [Vercel](https://vercel.com/) | serverless API routes + static assets, auto-deploy from `main` |
 | **Tooling** | ESLint 9 (`eslint-config-next`) | linting |
 
-> Supabase and Replicate are wired up in later phases; the current build runs entirely client-side with no required environment variables.
+## AI wetsuit texture pipeline
+
+When a player designs their wetsuit, a short idea is turned into a finished, durable texture on the diver's suit. The diver's `M_Suit` material is one continuous **full-body UV unwrap** (torso, arms, legs), so the whole pipeline is tuned to produce a **seamless, tileable, evenly-distributed material** — no focal point, no body shapes.
+
+```
+Player idea ("coral camo")
+      │
+      ▼
+1. Prompt enhancement   ─ google/gemini-2.5-flash (Replicate)
+   Expands the idea into a detailed, UV-aware prompt for a seamless
+   full-body wetsuit material. 20s timeout + template fallback.
+      │
+      ▼
+2. Image generation     ─ google/nano-banana-2 (Replicate)
+   Renders a 1K, 1:1 seamless neoprene texture from that prompt.
+      │
+      ▼
+3. Persist (server)     ─ Supabase Storage + Postgres
+   The API route downloads the image bytes (Replicate URLs expire),
+   uploads them to the public `diver-textures` bucket, and records a
+   `diver_textures` row owned by the player (anonymous auth + RLS).
+      │
+      ▼
+4. Apply + save         ─ client
+   The durable public URL is applied to the M_Suit material live, and
+   added to the player's saved-designs history (survives reload).
+```
+
+- **Where it lives:** the server route [`app/api/generate-texture/route.ts`](app/api/generate-texture/route.ts) (the Replicate token stays server-side); client helpers in [`lib/player.ts`](lib/player.ts); schema in [`supabase/migrations/`](supabase/migrations/).
+- **Graceful degradation:** every step is best-effort — if the enhancer is slow it falls back to a simple template; if Supabase isn't configured the texture still generates and the history stays in-memory for the session.
+- **Models are swappable** via `REPLICATE_MODEL` (image) — the enhancer model is set in the route.
+
+> Supabase and Replicate are now wired up (P4). Texture generation and saved history need the Replicate + Supabase keys below; without them the game still renders, but the AI wetsuit feature is disabled.
 
 ## Deploy (Vercel)
 
-Zero-config — Next.js is auto-detected. Import the repo at [vercel.com/new](https://vercel.com/new) and deploy; every push to `main` then auto-deploys. No environment variables are required for the current build (Supabase/Replicate keys come online in P2/P4 — see [.env.local.example](.env.local.example)).
+Next.js is auto-detected. Import the repo at [vercel.com/new](https://vercel.com/new) and deploy; every push to `main` then auto-deploys. To enable the AI wetsuit textures + saved history, set these environment variables (Production + Preview) — see [.env.local.example](.env.local.example):
+
+| Variable | Used by | Notes |
+| --- | --- | --- |
+| `REPLICATE_API_TOKEN` | server | prompt enhancement + image generation |
+| `REPLICATE_MODEL` | server | optional; defaults to `google/nano-banana-2` |
+| `NEXT_PUBLIC_SUPABASE_URL` | client + server | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | client | anon key (RLS-scoped) |
+| `SUPABASE_SERVICE_ROLE_KEY` | server only | uploads + writes; **never** exposed to the browser |
+
+One-time Supabase setup: run the SQL in [`supabase/migrations/`](supabase/migrations/) and enable **Anonymous** sign-in (Authentication → Providers).
 
 ## Status & how to run
 
