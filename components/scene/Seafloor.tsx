@@ -11,6 +11,9 @@ export function Seafloor() {
   const setDiverTarget = useGame((s) => s.setDiverTarget);
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
+    // Only swim once we're actually playing — during personalise the floor is
+    // out of frame and OrbitControls owns the gestures.
+    if (useGame.getState().phase !== "playing") return;
     e.stopPropagation();
     setDiverTarget([e.point.x, 0, e.point.z]);
   };

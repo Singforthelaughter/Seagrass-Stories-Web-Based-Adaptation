@@ -15,7 +15,7 @@ export default function Home() {
       </p>
 
       <Link
-        href="/personalise"
+        href="/play"
         className="relative mt-10 rounded-full bg-gradient-to-r from-[#19c6c6] to-[#2e7dd1] px-10 py-4 text-lg font-bold text-[#04121f] shadow-lg shadow-cyan-900/40 transition active:scale-95"
       >
         Start Play
