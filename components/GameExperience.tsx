@@ -18,6 +18,8 @@ const FRONT_OFFSET = 0; // at yaw 0 the model already faces +Z (toward the camer
 const REST_HEADING = Math.PI; // while playing (idle), head points away from the camera
 const SWIM_LEAN = Math.PI * 0.42; // forward tilt so the diver swims prone, not upright
 const TRANSITION_DUR = 3.8; // seconds for the personalise → playing camera move
+const SWIM_SPEED = 7; // world units / second at full joystick deflection
+const SWIM_BOUND = 90; // keep the diver within the meadow
 
 // smootherstep (Ken Perlin) — zero velocity AND acceleration at both ends,
 // so the dive-in eases in and settles without any abrupt start/stop.
@@ -46,7 +48,7 @@ function DiverRig({
   useFrame((state, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
     const t = state.clock.elapsedTime;
-    const { phase, diverTarget } = useGame.getState();
+    const { phase, move } = useGame.getState();
     const playing = phase === "playing";
     const p = pos.current.position;
     // yaw first, then the swim lean (pitch) in the facing frame
@@ -69,18 +71,18 @@ function DiverRig({
     const e = smooth(progress.current);
     const bob = Math.sin(t * (playing ? 1.5 : 0.8)) * (playing ? 0.08 : 0.12);
 
-    // --- diver position: glide x/z toward the tapped point; descend via e ---
-    const tx = playing && diverTarget ? diverTarget[0] : 0;
-    const tz = playing && diverTarget ? diverTarget[2] : 0;
-    const dx = tx - p.x;
-    const dz = tz - p.z;
-    const glide = 1 - Math.pow(0.05, dt);
-    p.x += dx * glide;
-    p.z += dz * glide;
+    // --- diver position: joystick-driven once swimming; descend via e ---
+    const mx = move[0];
+    const mz = move[1];
+    const moving = playing && progress.current >= 1 && mx * mx + mz * mz > 0.01;
+    if (moving) {
+      const step = SWIM_SPEED * dt;
+      p.x = THREE.MathUtils.clamp(p.x + mx * step, -SWIM_BOUND, SWIM_BOUND);
+      p.z = THREE.MathUtils.clamp(p.z + mz * step, -SWIM_BOUND, SWIM_BOUND);
+    }
     p.y = THREE.MathUtils.lerp(FLOAT_Y, SWIM_HEIGHT, e) + bob;
 
     // --- facing: turn toward travel direction; lean forward while swimming ---
-    const moving = dx * dx + dz * dz > 4e-4;
     if (!playing) {
       // face the camera while personalising
       face.current.rotation.y = THREE.MathUtils.damp(face.current.rotation.y, FRONT_OFFSET, 5, dt);
@@ -90,7 +92,7 @@ function DiverRig({
         // during the dive-in, turn on the same eased timeline as the camera
         face.current.rotation.y = THREE.MathUtils.lerp(yawStart.current, REST_HEADING, e);
       } else {
-        const targetYaw = moving ? Math.atan2(dx, dz) + FRONT_OFFSET : REST_HEADING;
+        const targetYaw = moving ? Math.atan2(mx, mz) + FRONT_OFFSET : REST_HEADING;
         face.current.rotation.y = THREE.MathUtils.damp(face.current.rotation.y, targetYaw, 4, dt);
       }
       // lean is bound to the transition (and stays at full lean once swimming)
@@ -160,8 +162,8 @@ export function GameExperience() {
       <color attach="background" args={[WATER_COLOR]} />
       <fog attach="fog" args={[WATER_COLOR, 14, 60]} />
 
-      <ambientLight intensity={0.6} color="#9fd8e6" />
-      <hemisphereLight args={["#bdeaf6", "#0a2a36", 0.7]} />
+      <ambientLight intensity={0.75} color="#9fd8e6" />
+      <hemisphereLight args={["#bdeaf6", "#0a2a36", 0.8]} />
       <directionalLight
         position={[6, 18, 8]}
         intensity={1.2}
@@ -173,6 +175,8 @@ export function GameExperience() {
         shadow-camera-top={30}
         shadow-camera-bottom={-30}
       />
+      {/* fill from the camera side so the diver's front isn't in shadow */}
+      <directionalLight position={[0, 6, 14]} intensity={1.1} color="#cdeefa" />
 
       <UnderwaterEnvironment />
       <Seafloor />

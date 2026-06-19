@@ -94,9 +94,12 @@ export function Diver({
     // AI-generated texture will be applied to it later (P4). Named so it can be
     // found and re-skinned at runtime.
     const suitMat = new THREE.MeshStandardMaterial({
-      color: "#000000",
-      roughness: 0.7,
-      metalness: 0.05,
+      color: "#050505",
+      // glossy like a real wetsuit so its form reads via highlights/reflections
+      // even while pure black (before the AI texture is applied).
+      roughness: 0.35,
+      metalness: 0.0,
+      envMapIntensity: 1.5,
     });
     suitMat.name = "M_Suit";
 

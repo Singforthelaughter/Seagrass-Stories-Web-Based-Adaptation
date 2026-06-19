@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useGame } from "@/lib/store";
+import { Joystick } from "@/components/ui/Joystick";
 
 // Three.js touches the DOM/WebGL — load the canvas client-side only.
 const GameExperience = dynamic(
@@ -73,12 +74,8 @@ export default function PlayPage() {
         </button>
       </div>
 
-      {/* Gameplay hint */}
-      {phase === "playing" && (
-        <p className="absolute inset-x-0 bottom-6 z-10 text-center text-xs text-[#6f97a6]">
-          Tap the seafloor to swim.
-        </p>
-      )}
+      {/* Gameplay controls */}
+      {phase === "playing" && <Joystick />}
     </main>
   );
 }

@@ -12,9 +12,12 @@ interface GameState {
   /** The player's chosen diver name (set on the Personalise screen). */
   username: string;
   setUsername: (name: string) => void;
-  /** Where the local diver is swimming toward (world-space point on the seafloor). */
-  diverTarget: Vec3 | null;
-  setDiverTarget: (t: Vec3) => void;
+  /**
+   * Joystick movement input, each axis in [-1, 1]. x = world X, y = world Z
+   * (screen-up is negative = swim away from the camera). [0,0] = idle.
+   */
+  move: [number, number];
+  setMove: (x: number, y: number) => void;
 }
 
 export const useGame = create<GameState>((set) => ({
@@ -22,6 +25,6 @@ export const useGame = create<GameState>((set) => ({
   setPhase: (p) => set({ phase: p }),
   username: "",
   setUsername: (name) => set({ username: name }),
-  diverTarget: null,
-  setDiverTarget: (t) => set({ diverTarget: t }),
+  move: [0, 0],
+  setMove: (x, y) => set({ move: [x, y] }),
 }));
