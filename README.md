@@ -2,7 +2,7 @@
 
 **Seagrass Stories** is a calm, hopeful underwater game you play in your browser or on a tablet. You're a **scuba diver** helping bring a damaged seafloor back to life. Plant seagrass, watch your meadow grow, and slowly the fish, turtles, and other sea creatures come back.
 
-It's a **shared world**: everyone who's online is diving in the same ocean at the same time, helping each other tend the meadow. The world keeps living even when you're away — leave, come back later, and see how it's changed. There's no chat; players simply send **emoji** to say hello, thank you, or cheer each other on.
+It's a **shared world**: everyone who's online is diving in the same ocean at the same time, helping each other tend the meadow. The world keeps living even when you're away — leave, come back later, and see how it's changed. There's no chat; players simply send **emoji** to say hello, thank you, or cheer each other on — and because there's no free text, there's nothing to moderate, which keeps the world safe for younger players.
 
 **In short:** dive in → make your diver your own → plant and care for an underwater garden → bring marine life back, together.
 
@@ -71,6 +71,8 @@ As enough healthy seagrass accumulates and health rises past thresholds, **marin
 
 ### 12. Talk in emoji
 Players **send emoji** to each other (a heart, a wave, a thumbs-up) that float above their divers. It's the only way to communicate — friendly, language-free, and safe for all ages.
+
+> **Why emoji-only?** Restricting communication to a fixed set of emoji means there is **no free-text chat to moderate** — no profanity, harassment, grooming, or spam to filter, and no usernames to police. This sidesteps the need for a text-moderation pipeline entirely, which keeps the shared world safe for kids and young adults by design rather than by enforcement.
 
 ### 13. Leave and return — a living world
 When the player leaves, the **world keeps simulating**. Seagrass keeps growing, decay keeps pressing, animals come and go based on the meadow's health. The player can **return any time** to see how the shared meadow has changed since they were last there.
