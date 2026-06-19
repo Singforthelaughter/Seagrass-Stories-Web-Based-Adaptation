@@ -13,12 +13,13 @@ import { useGame } from "@/lib/store";
 const WATER_COLOR = "#0b3547";
 const SWIM_HEIGHT = 1.3; // diver height above the seafloor while playing
 const FLOAT_Y = 7; // diver floats up here while personalising (floor out of view)
-const FRONT_OFFSET = Math.PI; // model's front is -Z; rotate so it faces the camera
+const FRONT_OFFSET = 0; // at yaw 0 the model already faces +Z (toward the camera)
+const SWIM_LEAN = Math.PI * 0.42; // forward tilt so the diver swims prone, not upright
+const TRANSITION_DUR = 2.4; // seconds for the personalise → playing camera move
 
-const _desired = new THREE.Vector3();
-const _dir = new THREE.Vector3();
+const smooth = (x: number) => x * x * (3 - 2 * x); // smoothstep easing
+
 const _camGoal = new THREE.Vector3();
-const _look = new THREE.Vector3();
 
 /**
  * Drives the diver + camera for both phases in a single scene so the move from
@@ -31,56 +32,63 @@ function DiverRig({
   controls: React.RefObject<OrbitControlsImpl | null>;
 }) {
   const pos = useRef<THREE.Group>(null!); // world position
-  const face = useRef<THREE.Group>(null!); // yaw / facing
+  const face = useRef<THREE.Group>(null!); // yaw + pitch (facing / swim lean)
   const { camera } = useThree();
+  const progress = useRef(0); // 0 = personalise framing, 1 = full gameplay
+  const camStart = useRef<THREE.Vector3 | null>(null);
+  const wasPlaying = useRef(false);
 
   useFrame((state, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
     const t = state.clock.elapsedTime;
     const { phase, diverTarget } = useGame.getState();
     const playing = phase === "playing";
+    const p = pos.current.position;
+    // yaw first, then the swim lean (pitch) in the facing frame
+    face.current.rotation.order = "YXZ";
+
+    // detect entering / leaving the playing phase
+    if (playing !== wasPlaying.current) {
+      if (playing) camStart.current = camera.position.clone(); // ease from orbit pose
+      else progress.current = 0;
+      wasPlaying.current = playing;
+    }
+    // advance the timed transition
+    if (playing && progress.current < 1) {
+      progress.current = Math.min(1, progress.current + dt / TRANSITION_DUR);
+    }
+    const e = smooth(progress.current);
     const bob = Math.sin(t * (playing ? 1.5 : 0.8)) * (playing ? 0.08 : 0.12);
 
-    // --- diver position ---
-    if (playing) {
-      const tx = diverTarget ? diverTarget[0] : pos.current.position.x;
-      const tz = diverTarget ? diverTarget[2] : pos.current.position.z;
-      _desired.set(tx, SWIM_HEIGHT + bob, tz);
-    } else {
-      _desired.set(0, FLOAT_Y + bob, 0);
-    }
-    // smooth lerp also produces the descent when phase flips to playing
-    pos.current.position.lerp(_desired, 1 - Math.pow(0.0016, dt));
+    // --- diver position: glide x/z toward the tapped point; descend via e ---
+    const tx = playing && diverTarget ? diverTarget[0] : 0;
+    const tz = playing && diverTarget ? diverTarget[2] : 0;
+    const dx = tx - p.x;
+    const dz = tz - p.z;
+    const glide = 1 - Math.pow(0.05, dt);
+    p.x += dx * glide;
+    p.z += dz * glide;
+    p.y = THREE.MathUtils.lerp(FLOAT_Y, SWIM_HEIGHT, e) + bob;
 
-    // --- facing ---
-    let targetYaw = 0;
-    if (playing) {
-      _dir.set(_desired.x - pos.current.position.x, 0, _desired.z - pos.current.position.z);
-      if (_dir.lengthSq() > 4e-4) targetYaw = Math.atan2(_dir.x, _dir.z);
-      else targetYaw = face.current.rotation.y - FRONT_OFFSET; // hold heading
-    }
-    face.current.rotation.y = THREE.MathUtils.damp(
-      face.current.rotation.y,
-      targetYaw + FRONT_OFFSET,
-      6,
-      dt,
-    );
+    // --- facing: turn toward travel direction; lean forward while swimming ---
+    let targetYaw = face.current.rotation.y;
+    if (playing && dx * dx + dz * dz > 4e-4) targetYaw = Math.atan2(dx, dz) + FRONT_OFFSET;
+    else if (!playing) targetYaw = FRONT_OFFSET;
+    face.current.rotation.y = THREE.MathUtils.damp(face.current.rotation.y, targetYaw, 6, dt);
+    face.current.rotation.x = THREE.MathUtils.damp(face.current.rotation.x, SWIM_LEAN * e, 6, dt);
 
     // --- camera ---
     if (playing) {
-      // follow-cam; on the first frames it eases from wherever OrbitControls left it
-      _camGoal.set(
-        pos.current.position.x,
-        pos.current.position.y + 6,
-        pos.current.position.z + 11,
-      );
-      camera.position.lerp(_camGoal, 1 - Math.pow(0.004, dt));
-      _look.copy(pos.current.position);
-      camera.lookAt(_look);
+      _camGoal.set(p.x, p.y + 6, p.z + 11);
+      if (progress.current < 1 && camStart.current) {
+        camera.position.lerpVectors(camStart.current, _camGoal, e); // timed ease-in
+      } else {
+        camera.position.lerp(_camGoal, 1 - Math.pow(0.02, dt)); // gentle follow after
+      }
+      camera.lookAt(p.x, p.y, p.z);
     } else {
       // OrbitControls owns the camera; keep its target on the floating diver
-      const c = controls.current;
-      if (c) c.target.lerp(pos.current.position, 1 - Math.pow(0.01, dt));
+      controls.current?.target.lerp(p, 1 - Math.pow(0.01, dt));
     }
   });
 
