@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabaseServer";
 
 // Image generation can take 10–40s; give the function room.
 export const runtime = "nodejs";
@@ -6,6 +8,59 @@ export const maxDuration = 60;
 
 const API = "https://api.replicate.com/v1";
 const DEFAULT_MODEL = "google/nano-banana-pro";
+
+/** Verify the forwarded anon access token and return the player's uid. */
+async function getUserId(req: Request): Promise<string | null> {
+  const header = req.headers.get("authorization");
+  const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!token || !url || !anon) return null;
+  const sb = createClient(url, anon, { auth: { persistSession: false } });
+  const { data, error } = await sb.auth.getUser(token);
+  if (error) return null;
+  return data.user?.id ?? null;
+}
+
+/**
+ * Persist the generated image to Supabase Storage (bytes, not the temporary
+ * Replicate URL) and record a `diver_textures` row. Returns the durable public
+ * URL, or null if Supabase isn't configured / the player isn't authed — the
+ * caller falls back to the inline data URL so generation still works.
+ */
+async function persistTexture(
+  userId: string,
+  prompt: string,
+  buf: Buffer,
+  contentType: string,
+): Promise<string | null> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
+  try {
+    const svc = getServiceSupabase();
+    const ext = contentType.includes("png")
+      ? "png"
+      : contentType.includes("webp")
+        ? "webp"
+        : "jpg";
+    const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+    const up = await svc.storage
+      .from("diver-textures")
+      .upload(path, buf, { contentType, upsert: false });
+    if (up.error) {
+      console.warn("Storage upload failed:", up.error.message);
+      return null;
+    }
+    const publicUrl = svc.storage.from("diver-textures").getPublicUrl(path).data.publicUrl;
+    const ins = await svc
+      .from("diver_textures")
+      .insert({ player_id: userId, prompt, storage_path: path, public_url: publicUrl });
+    if (ins.error) console.warn("diver_textures insert failed:", ins.error.message);
+    return publicUrl;
+  } catch (e) {
+    console.warn("persistTexture failed:", e);
+    return null;
+  }
+}
 
 type Prediction = {
   status?: string;
@@ -100,9 +155,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No image was returned." }, { status: 502 });
     }
 
-    // Fetch the bytes server-side and return a data URL so the browser can use
-    // it as a WebGL texture without cross-origin tainting. (Persisting to
-    // Supabase Storage comes with P2/P4 persistence.)
+    // Fetch the bytes server-side: a data URL gives the browser an instant,
+    // CORS-safe preview, while the same bytes are uploaded to Supabase Storage
+    // for a durable URL (Replicate delivery URLs expire).
     const img = await fetch(imageUrl);
     if (!img.ok) {
       return NextResponse.json({ error: "Could not download the image." }, { status: 502 });
@@ -111,7 +166,11 @@ export async function POST(req: Request) {
     const buf = Buffer.from(await img.arrayBuffer());
     const dataUrl = `data:${contentType};base64,${buf.toString("base64")}`;
 
-    return NextResponse.json({ image: dataUrl });
+    // Persist for this player's history (best-effort; never blocks the result).
+    const userId = await getUserId(req);
+    const url = userId ? await persistTexture(userId, prompt, buf, contentType) : null;
+
+    return NextResponse.json({ image: dataUrl, url });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unexpected error.";
     return NextResponse.json({ error: message }, { status: 500 });

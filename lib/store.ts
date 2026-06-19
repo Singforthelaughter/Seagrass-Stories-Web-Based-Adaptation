@@ -21,6 +21,8 @@ interface GameState {
    */
   suitTextureHistory: string[];
   addSuitTexture: (url: string) => void;
+  /** Replace the whole history (e.g. after loading from Supabase). */
+  setSuitHistory: (urls: string[]) => void;
   /**
    * Joystick movement input, each axis in [-1, 1]. x = world X, y = world Z
    * (screen-up is negative = swim away from the camera). [0,0] = idle.
@@ -42,6 +44,7 @@ export const useGame = create<GameState>((set) => ({
       suitTextureUrl: url,
       suitTextureHistory: [url, ...s.suitTextureHistory.filter((u) => u !== url)].slice(0, 12),
     })),
+  setSuitHistory: (urls) => set({ suitTextureHistory: urls }),
   move: [0, 0],
   setMove: (x, y) => set({ move: [x, y] }),
 }));

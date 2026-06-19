@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useGame } from "@/lib/store";
+import { ensureSession, getAccessToken, loadTextureHistory } from "@/lib/player";
 import { Joystick } from "@/components/ui/Joystick";
 
 const NAME_ADJ = [
@@ -39,6 +40,7 @@ export default function PlayPage() {
   const setSuitTextureUrl = useGame((s) => s.setSuitTextureUrl);
   const suitTextureUrl = useGame((s) => s.suitTextureUrl);
   const addSuitTexture = useGame((s) => s.addSuitTexture);
+  const setSuitHistory = useGame((s) => s.setSuitHistory);
   const suitTextureHistory = useGame((s) => s.suitTextureHistory);
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -47,11 +49,17 @@ export default function PlayPage() {
   const [showDesigns, setShowDesigns] = useState(false);
 
   // Always begin at the personalise step when this page mounts, and give the
-  // player a ready-made name so they can skip the field entirely.
+  // player a ready-made name so they can skip the field entirely. Also sign in
+  // anonymously and load any previously saved wetsuit designs from Supabase.
   useEffect(() => {
     setPhase("personalise");
     setName(randomName());
-  }, [setPhase]);
+    (async () => {
+      await ensureSession();
+      const history = await loadTextureHistory();
+      if (history.length) setSuitHistory(history);
+    })();
+  }, [setPhase, setSuitHistory]);
 
   async function generate() {
     const p = prompt.trim();
@@ -59,14 +67,21 @@ export default function PlayPage() {
     setGenerating(true);
     setError(null);
     try {
+      const token = await getAccessToken();
       const res = await fetch("/api/generate-texture", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ prompt: p }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed.");
-      addSuitTexture(data.image);
+      // Prefer the durable Supabase URL; fall back to the inline data URL.
+      addSuitTexture(data.url ?? data.image);
+      const history = await loadTextureHistory();
+      if (history.length) setSuitHistory(history);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
