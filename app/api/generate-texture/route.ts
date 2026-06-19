@@ -8,6 +8,21 @@ export const maxDuration = 60;
 
 const API = "https://api.replicate.com/v1";
 const DEFAULT_MODEL = "google/nano-banana-2";
+// Text model that expands the player's short idea into a rich texture prompt.
+const ENHANCER_MODEL = "google/gemini-2.5-flash";
+
+// The diver's wetsuit UV is one continuous full-body unwrap (torso, arms, legs),
+// so we want a flat, evenly-distributed, seamless material — not a body-shaped
+// graphic with a focal point. This guides the rewrite toward exactly that.
+const ENHANCER_SYSTEM =
+  "You rewrite a short user idea into ONE vivid, detailed prompt for an AI image " +
+  "generator that will produce a SEAMLESS, TILEABLE flat material texture for a " +
+  "full-body scuba diving wetsuit (the texture wraps the entire suit: torso, arms " +
+  "and legs as one continuous unwrap). Rules: describe colors, patterns, surface " +
+  "finish and neoprene fabric detail; keep the pattern continuous and evenly " +
+  "distributed with NO focal point, NO seams, NO logos or text, NO body shapes, " +
+  "NO shadows, flat lay, evenly lit, photographic. Output ONLY the final prompt as " +
+  "a single sentence, max 60 words, no preamble.";
 
 /** Verify the forwarded anon access token and return the player's uid. */
 async function getUserId(req: Request): Promise<string | null> {
@@ -102,6 +117,44 @@ async function call(url: string, token: string, init?: RequestInit) {
   return (await res.json()) as Prediction;
 }
 
+/**
+ * Expand the player's short idea into a detailed, seamless full-body-wetsuit
+ * prompt via gemini-2.5-flash. Best-effort: returns null (so the caller falls
+ * back to the simple template) if the model errors or is too slow.
+ */
+async function enhancePrompt(idea: string, token: string): Promise<string | null> {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20_000);
+    const res = await fetch(`${API}/models/${ENHANCER_MODEL}/predictions`, {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: {
+        Authorization: `Token ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "wait",
+      },
+      body: JSON.stringify({
+        input: {
+          prompt: idea,
+          system_instruction: ENHANCER_SYSTEM,
+          temperature: 0.9,
+          max_output_tokens: 2000,
+        },
+      }),
+    }).finally(() => clearTimeout(timer));
+    if (!res.ok) return null;
+    const pred = (await res.json()) as Prediction;
+    if (pred.status !== "succeeded") return null;
+    // gemini's output is an array of streamed string chunks.
+    const out = Array.isArray(pred.output) ? pred.output.join("") : pred.output;
+    const text = typeof out === "string" ? out.trim() : "";
+    return text.length > 10 ? text.slice(0, 600) : null;
+  } catch {
+    return null; // timeout / network — fall back to the template
+  }
+}
+
 export async function POST(req: Request) {
   const token = process.env.REPLICATE_API_TOKEN;
   if (!token) {
@@ -122,11 +175,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Please enter a prompt." }, { status: 400 });
   }
 
-  // Shape the request toward a clean, tileable wetsuit material.
+  // Expand the short idea into a richer, UV-aware texture prompt; if that fails
+  // or is slow, fall back to a simple template so generation still works.
+  const enhanced = await enhancePrompt(prompt, token);
   const fullPrompt =
+    enhanced ??
     `Seamless, tileable material texture for a scuba-diving wetsuit: ${prompt}. ` +
-    `Flat lay, evenly lit, sharp high detail, no seams, no logos or text, ` +
-    `no shadows, photographic neoprene fabric surface.`;
+      `Flat lay, evenly lit, sharp high detail, no seams, no logos or text, ` +
+      `no shadows, photographic neoprene fabric surface.`;
   const model = process.env.REPLICATE_MODEL || DEFAULT_MODEL;
 
   try {
