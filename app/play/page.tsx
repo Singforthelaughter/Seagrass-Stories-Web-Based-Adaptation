@@ -38,6 +38,8 @@ export default function PlayPage() {
   const setUsername = useGame((s) => s.setUsername);
   const setSuitTextureUrl = useGame((s) => s.setSuitTextureUrl);
   const suitTextureUrl = useGame((s) => s.suitTextureUrl);
+  const addSuitTexture = useGame((s) => s.addSuitTexture);
+  const suitTextureHistory = useGame((s) => s.suitTextureHistory);
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -63,7 +65,7 @@ export default function PlayPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed.");
-      setSuitTextureUrl(data.image);
+      addSuitTexture(data.image);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
@@ -139,6 +141,29 @@ export default function PlayPage() {
               </button>
             )}
           </div>
+
+          {/* Past designs (in-memory for now; Supabase-backed later) */}
+          {suitTextureHistory.length > 0 && (
+            <div className="mt-2">
+              <p className="mb-1.5 text-left text-xs text-[#9fc4d0]">Your designs</p>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {suitTextureHistory.map((url, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSuitTextureUrl(url)}
+                    className={`h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 transition active:scale-95 ${
+                      url === suitTextureUrl
+                        ? "border-[#19c6c6]"
+                        : "border-white/15 hover:border-white/40"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`Design ${i + 1}`} className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* SECONDARY: optional name (pre-filled with a random one) */}

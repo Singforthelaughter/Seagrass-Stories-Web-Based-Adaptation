@@ -12,9 +12,15 @@ interface GameState {
   /** The player's chosen diver name (set on the Personalise screen). */
   username: string;
   setUsername: (name: string) => void;
-  /** AI-generated wetsuit (M_Suit) texture, as a data URL. null = plain black. */
+  /** AI-generated wetsuit (M_Suit) texture, as a data URL. null = plain white. */
   suitTextureUrl: string | null;
   setSuitTextureUrl: (url: string | null) => void;
+  /**
+   * Previously generated wetsuit textures (most recent first), as data URLs.
+   * In-memory for now; will be backed by Supabase Storage / diver_textures (P2/P4).
+   */
+  suitTextureHistory: string[];
+  addSuitTexture: (url: string) => void;
   /**
    * Joystick movement input, each axis in [-1, 1]. x = world X, y = world Z
    * (screen-up is negative = swim away from the camera). [0,0] = idle.
@@ -30,6 +36,12 @@ export const useGame = create<GameState>((set) => ({
   setUsername: (name) => set({ username: name }),
   suitTextureUrl: null,
   setSuitTextureUrl: (url) => set({ suitTextureUrl: url }),
+  suitTextureHistory: [],
+  addSuitTexture: (url) =>
+    set((s) => ({
+      suitTextureUrl: url,
+      suitTextureHistory: [url, ...s.suitTextureHistory.filter((u) => u !== url)].slice(0, 12),
+    })),
   move: [0, 0],
   setMove: (x, y) => set({ move: [x, y] }),
 }));
