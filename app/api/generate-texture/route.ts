@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const API = "https://api.replicate.com/v1";
-const DEFAULT_MODEL = "google/nano-banana-pro";
+const DEFAULT_MODEL = "google/nano-banana-2";
 
 /** Verify the forwarded anon access token and return the player's uid. */
 async function getUserId(req: Request): Promise<string | null> {
@@ -134,7 +134,9 @@ export async function POST(req: Request) {
     let pred = await call(`${API}/models/${model}/predictions`, token, {
       method: "POST",
       headers: { Prefer: "wait" },
-      body: JSON.stringify({ input: { prompt: fullPrompt, aspect_ratio: "1:1" } }),
+      body: JSON.stringify({
+        input: { prompt: fullPrompt, aspect_ratio: "1:1", resolution: "1K" },
+      }),
     });
 
     // Poll if it didn't finish within the wait window.
