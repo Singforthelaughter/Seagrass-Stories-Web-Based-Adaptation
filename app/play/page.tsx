@@ -25,7 +25,7 @@ const GameExperience = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full w-full items-center justify-center bg-[#04161f] text-[#bfe6ef]">
+      <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#04161f] text-[#bfe6ef]">
         Descending…
       </div>
     ),
