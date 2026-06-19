@@ -6,6 +6,7 @@ import { OrbitControls } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { Seafloor } from "./scene/Seafloor";
+import { SeagrassField } from "./scene/Seagrass";
 import { Diver } from "./scene/Diver";
 import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
 import { useGame } from "@/lib/store";
@@ -193,6 +194,7 @@ export function GameExperience() {
 
       <UnderwaterEnvironment />
       <Seafloor progress={progress} />
+      <SeagrassField progress={progress} />
       <DiverRig controls={controls} progress={progress} />
       <Controls controls={controls} />
     </Canvas>
