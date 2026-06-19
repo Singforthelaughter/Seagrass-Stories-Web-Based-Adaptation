@@ -98,11 +98,11 @@ export function Diver({
     // found and re-skinned at runtime.
     const suitMat = new THREE.MeshStandardMaterial({
       color: "#050505",
-      // glossy like a real wetsuit so its form reads via highlights/reflections
-      // even while pure black (before the AI texture is applied).
-      roughness: 0.35,
+      // semi-matte wetsuit: enough sheen to read form, but not so mirror-like
+      // that it reflects the (darker) environment on the camera-facing side.
+      roughness: 0.5,
       metalness: 0.0,
-      envMapIntensity: 1.5,
+      envMapIntensity: 0.8,
     });
     suitMat.name = "M_Suit";
     suitMatRef.current = suitMat;

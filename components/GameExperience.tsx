@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -39,6 +39,8 @@ function DiverRig({
 }) {
   const pos = useRef<THREE.Group>(null!); // world position
   const face = useRef<THREE.Group>(null!); // yaw + pitch (facing / swim lean)
+  const headlamp = useRef<THREE.DirectionalLight>(null!); // follows the camera
+  const headTarget = useMemo(() => new THREE.Object3D(), []);
   const { camera } = useThree();
   const progress = useRef(0); // 0 = personalise framing, 1 = full gameplay
   const camStart = useRef<THREE.Vector3 | null>(null);
@@ -119,14 +121,25 @@ function DiverRig({
         1 - Math.pow(0.01, dt),
       );
     }
+
+    // --- headlamp: keep the side we're looking at lit (from the camera) ---
+    if (headlamp.current) {
+      headlamp.current.position.copy(camera.position);
+      headTarget.position.set(p.x, p.y, p.z);
+      headTarget.updateMatrixWorld();
+    }
   });
 
   return (
-    <group ref={pos} position={[0, FLOAT_Y, 0]}>
-      <group ref={face} rotation={[0, FRONT_OFFSET, 0]}>
-        <Diver targetLength={2.3} />
+    <>
+      <group ref={pos} position={[0, FLOAT_Y, 0]}>
+        <group ref={face} rotation={[0, FRONT_OFFSET, 0]}>
+          <Diver targetLength={2.3} />
+        </group>
       </group>
-    </group>
+      <directionalLight ref={headlamp} intensity={1.6} color="#eaf7ff" target={headTarget} />
+      <primitive object={headTarget} />
+    </>
   );
 }
 
@@ -178,8 +191,6 @@ export function GameExperience() {
         shadow-camera-top={30}
         shadow-camera-bottom={-30}
       />
-      {/* fill from the camera side so the diver's front isn't in shadow */}
-      <directionalLight position={[0, 6, 14]} intensity={1.1} color="#cdeefa" />
 
       <UnderwaterEnvironment />
       <Seafloor />
