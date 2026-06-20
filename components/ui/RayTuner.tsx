@@ -10,13 +10,15 @@ import type { RayParams } from "@/lib/store";
  * remove this component.
  */
 const SLIDERS: { key: keyof RayParams; label: string; min: number; max: number; step: number }[] = [
+  { key: "count", label: "Count", min: 1, max: 200, step: 1 },
+  { key: "length", label: "Length", min: 10, max: 220, step: 5 },
+  { key: "radius", label: "Radius (thickness)", min: 0.1, max: 10, step: 0.1 },
   { key: "intensity", label: "Intensity", min: 0, max: 4, step: 0.05 },
-  { key: "speed", label: "Speed", min: 0, max: 3, step: 0.05 },
-  { key: "freq", label: "Count / spacing", min: 0.3, max: 3, step: 0.05 },
-  { key: "sharp", label: "Beam thinness", min: 1, max: 16, step: 0.5 },
+  { key: "power", label: "Fresnel power", min: 0.3, max: 8, step: 0.1 },
+  { key: "tilt", label: "Tilt°", min: 0, max: 45, step: 1 },
+  { key: "spread", label: "Spread", min: 2, max: 140, step: 2 },
   { key: "centerY", label: "Center Y", min: -10, max: 40, step: 1 },
-  { key: "height", label: "Height", min: 20, max: 160, step: 2 },
-  { key: "width", label: "Width", min: 0, max: 320, step: 4 },
+  { key: "speed", label: "Drift speed", min: 0, max: 3, step: 0.05 },
 ];
 
 export function RayTuner({ forceShow = false }: { forceShow?: boolean }) {

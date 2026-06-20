@@ -1,60 +1,67 @@
 "use client";
 
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useGame } from "@/lib/store";
+import type { RayParams } from "@/lib/store";
 
 /**
- * Underwater sun shafts as cheap additive "curtain" planes rather than
- * screen-space god rays — visible from any angle (the real sun is overhead and
- * never in frame). A few large vertical quads cross the scene; a tiny fragment
- * shader draws soft drifting vertical beams. Additive blending makes the
- * overlaps glow. Static (centred on the world) and large enough to span the
- * whole meadow, so the camera is never embedded in them. Runs on every tier.
+ * Sun rays as a particle system: each particle is a long thin cylinder shaded
+ * with an inverse fresnel — the surface facing the camera reads white/opaque and
+ * the silhouette edges fade to transparent, so each cylinder looks like a soft
+ * glowing volumetric light shaft. Instanced → one draw call. Additive blending
+ * makes overlaps glow. Visible from any camera angle, on every quality tier.
  *
- * Params are read live from the store so the temporary ?tune sliders can adjust
- * them; once dialled in, bake the values into the store defaults.
+ * Params come live from the store so the debug page / ?tune sliders can adjust
+ * them; bake the values into the store defaults once dialled in.
  */
 
-const ANGLES = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4]; // crossed curtains
-
 const vertexShader = /* glsl */ `
+varying float vFacing;
 varying vec2 vUv;
 void main() {
   vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+  // normal through the instance + view transform (radial normals on a thin
+  // cylinder; uniform-enough scale that this reads correctly for the glow)
+  vec3 n = normalize(normalMatrix * (mat3(instanceMatrix) * normal));
+  vec3 viewDir = normalize(-mvPosition.xyz);
+  vFacing = abs(dot(n, viewDir)); // 1 = facing camera (inner), 0 = silhouette
+  gl_Position = projectionMatrix * mvPosition;
 }
 `;
 
 const fragmentShader = /* glsl */ `
+varying float vFacing;
 varying vec2 vUv;
-uniform float uTime;
 uniform vec3 uColor;
 uniform float uIntensity;
-uniform float uFreq;
-uniform float uSharp;
-
-float shafts(float x, float t) {
-  x *= uFreq;
-  float a = sin(x * 5.0 + t * 0.20) * 0.5 + 0.5;
-  a = pow(a, uSharp);                               // beam width (higher = thinner)
-  float b = sin(x * 11.0 - t * 0.13) * 0.5 + 0.5;
-  b = pow(b, max(1.0, uSharp * 0.6));
-  return a * 0.8 + b * 0.5;
-}
-
+uniform float uPower;
 void main() {
-  float rays = shafts(vUv.x, uTime);
-  float topFade = smoothstep(-0.1, 0.7, vUv.y);    // strong up high, still at eye level
-  float edgeFade = smoothstep(0.0, 0.2, vUv.x) * smoothstep(1.0, 0.8, vUv.x);
-  float a = rays * topFade * edgeFade * uIntensity;
+  // inner (facing) white → outer (edge) transparent
+  float a = pow(vFacing, uPower);
+  // fade the lower end so shafts dissolve as they descend
+  a *= smoothstep(0.0, 0.3, vUv.y);
+  a *= uIntensity;
   gl_FragColor = vec4(uColor * a, a);
 }
 `;
 
-export function SunRays({ color = "#cfeeff" }: { color?: string }) {
-  const rays = useGame((s) => s.rays); // re-render on slider change (cheap)
+function RayInstances({
+  count,
+  length,
+  radius,
+  intensity,
+  power,
+  tilt,
+  spread,
+  centerY,
+  speed,
+  color,
+}: RayParams & { color: string }) {
+  const mesh = useRef<THREE.InstancedMesh>(null!);
+  const group = useRef<THREE.Group>(null!);
 
   const material = useMemo(
     () =>
@@ -62,11 +69,9 @@ export function SunRays({ color = "#cfeeff" }: { color?: string }) {
         vertexShader,
         fragmentShader,
         uniforms: {
-          uTime: { value: 0 },
           uColor: { value: new THREE.Color(color) },
-          uIntensity: { value: rays.intensity },
-          uFreq: { value: rays.freq },
-          uSharp: { value: rays.sharp },
+          uIntensity: { value: intensity },
+          uPower: { value: power },
         },
         transparent: true,
         depthWrite: false,
@@ -76,24 +81,47 @@ export function SunRays({ color = "#cfeeff" }: { color?: string }) {
         fog: false,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [color],
+    [],
   );
 
-  useFrame((state, dt) => {
-    const r = useGame.getState().rays;
-    material.uniforms.uTime.value += Math.min(dt, 0.05) * r.speed;
-    material.uniforms.uIntensity.value = r.intensity;
-    material.uniforms.uFreq.value = r.freq;
-    material.uniforms.uSharp.value = r.sharp;
+  // Place the cylinders. Re-runs when any layout param changes.
+  useLayoutEffect(() => {
+    const dummy = new THREE.Object3D();
+    const tiltRad = (tilt * Math.PI) / 180;
+    for (let i = 0; i < count; i++) {
+      const az = Math.random() * Math.PI * 2; // position azimuth
+      const r = Math.sqrt(Math.random()) * spread; // uniform disc spread
+      dummy.position.set(Math.cos(az) * r, centerY, Math.sin(az) * r);
+      // lean each ray a bit in a random horizontal direction
+      const leanDir = Math.random() * Math.PI * 2;
+      const amt = tiltRad * (0.4 + Math.random() * 0.6);
+      dummy.rotation.set(amt * Math.cos(leanDir), Math.random() * Math.PI, amt * Math.sin(leanDir));
+      dummy.scale.set(radius, length, radius);
+      dummy.updateMatrix();
+      mesh.current.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.current.instanceMatrix.needsUpdate = true;
+  }, [count, length, radius, tilt, spread, centerY]);
+
+  useFrame((_s, dt) => {
+    material.uniforms.uIntensity.value = intensity;
+    material.uniforms.uPower.value = power;
+    material.uniforms.uColor.value.set(color);
+    group.current.rotation.y += Math.min(dt, 0.05) * speed * 0.1; // gentle drift
   });
 
   return (
-    <group position={[0, rays.centerY, 0]}>
-      {ANGLES.map((a, i) => (
-        <mesh key={i} rotation={[0, a, 0]} material={material} renderOrder={2}>
-          <planeGeometry args={[rays.width, rays.height]} />
-        </mesh>
-      ))}
+    <group ref={group}>
+      <instancedMesh ref={mesh} args={[undefined, undefined, count]} material={material} frustumCulled={false}>
+        {/* radius 1, height 1, open-ended; scaled per-instance */}
+        <cylinderGeometry args={[1, 1, 1, 10, 1, true]} />
+      </instancedMesh>
     </group>
   );
+}
+
+export function SunRays({ color = "#eaf7ff" }: { color?: string }) {
+  const rays = useGame((s) => s.rays);
+  // Remount when the instance count changes (InstancedMesh size is fixed).
+  return <RayInstances key={rays.count} {...rays} color={color} />;
 }

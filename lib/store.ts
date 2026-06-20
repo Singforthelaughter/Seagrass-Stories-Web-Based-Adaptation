@@ -3,15 +3,17 @@ import * as THREE from "three";
 
 export type Vec3 = [number, number, number];
 
-/** Sun-ray tuning parameters. */
+/** Sun-ray tuning parameters (cylinder-particle system). */
 export type RayParams = {
-  intensity: number;
-  speed: number;
-  freq: number; // streak frequency multiplier (how many / spacing)
-  sharp: number; // beam thinness (higher = thinner individual rays)
+  count: number; // number of ray cylinders
+  length: number; // cylinder length
+  radius: number; // cylinder radius (ray thickness)
+  intensity: number; // overall brightness
+  power: number; // fresnel exponent (inner-white → outer-transparent falloff)
+  tilt: number; // lean from vertical, degrees
+  spread: number; // XZ distribution radius
   centerY: number; // vertical centre of the shafts
-  height: number; // plane height
-  width: number; // plane width
+  speed: number; // slow drift/rotation speed
 };
 
 /** "personalise" = inspecting the diver up close; "playing" = in the meadow. */
@@ -80,6 +82,16 @@ export const useGame = create<GameState>((set) => ({
   diverPos: new THREE.Vector3(),
   health: 0,
   setHealth: (h) => set({ health: Math.max(0, Math.min(1, h)) }),
-  rays: { intensity: 1.2, speed: 1.0, freq: 1.0, sharp: 3, centerY: 18, height: 90, width: 220 },
+  rays: {
+    count: 40,
+    length: 80,
+    radius: 1.4,
+    intensity: 1.0,
+    power: 2.5,
+    tilt: 12,
+    spread: 60,
+    centerY: 15,
+    speed: 0.1,
+  },
   setRays: (p) => set((s) => ({ rays: { ...s.rays, ...p } })),
 }));
