@@ -21,9 +21,9 @@ import { useGame } from "@/lib/store";
 // --- tuning ---------------------------------------------------------------
 const PERCEPTION = 3.0; // neighbour radius (also the grid cell size)
 const SEP_DIST = 1.7; // start pushing apart closer than this
-const MAX_SPEED = 3.4;
+const MAX_SPEED = 4.3;
 const MIN_SPEED = 1.3;
-const MAX_FORCE = 8.0; // steering acceleration clamp (room for avoidance)
+const MAX_FORCE = 16.0; // steering acceleration clamp (room for strong avoidance)
 const W_SEP = 2.3;
 const W_ALI = 1.0;
 const W_COH = 0.55;
@@ -31,10 +31,10 @@ const W_BOUND = 2.2; // pull back when outside the school sphere
 const BOUND_RADIUS = 8.0; // larger volume → more dispersed shoal
 
 // Predators to flee: the diver and the camera (so fish never swim through view).
-const DIVER_AVOID = 3.0;
-const W_DIVER = 12.0;
-const CAMERA_AVOID = 3.2;
-const W_CAMERA = 14.0;
+const DIVER_AVOID = 5.0;
+const W_DIVER = 22.0;
+const CAMERA_AVOID = 5.5;
+const W_CAMERA = 26.0;
 
 // Seafloor avoidance: steer up smoothly when within FLOOR_AVOID of the seabed
 // (seafloor sits at y=0), so fish hug just above it without diving through.
