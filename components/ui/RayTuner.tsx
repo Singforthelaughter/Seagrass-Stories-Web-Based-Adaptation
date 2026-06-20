@@ -19,14 +19,14 @@ const SLIDERS: { key: keyof RayParams; label: string; min: number; max: number; 
   { key: "width", label: "Width", min: 0, max: 320, step: 4 },
 ];
 
-export function RayTuner() {
+export function RayTuner({ forceShow = false }: { forceShow?: boolean }) {
   const [show, setShow] = useState(false);
   const rays = useGame((s) => s.rays);
   const setRays = useGame((s) => s.setRays);
 
   useEffect(() => {
-    setShow(new URLSearchParams(window.location.search).has("tune"));
-  }, []);
+    setShow(forceShow || new URLSearchParams(window.location.search).has("tune"));
+  }, [forceShow]);
 
   if (!show) return null;
 
