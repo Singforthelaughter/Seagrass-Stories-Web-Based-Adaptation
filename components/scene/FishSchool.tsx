@@ -27,14 +27,14 @@ const W_SEP = 1.7;
 const W_ALI = 1.0;
 const W_COH = 0.9;
 const W_BOUND = 3.0; // pull back when outside the school sphere
-const BOUND_RADIUS = 4.5;
+const BOUND_RADIUS = 3.5;
+const FLOOR_Y = 0.6; // keep fish just above the seafloor (seafloor sits at y=0)
 
 const FISH_LENGTH = 0.6;
 const FISH_RADIUS = 0.16;
 
-// Default school centre — placed in the start (personalise) framing so the
-// fish are visible for testing before the real spawn logic exists.
-const DEFAULT_CENTER: [number, number, number] = [2.6, 15.2, -0.4];
+// Default school centre — low, just above the seafloor.
+const DEFAULT_CENTER: [number, number, number] = [0, 2.5, 0];
 
 const UP_Y = new THREE.Vector3(0, 1, 0); // cone tip axis → aligned to velocity
 
@@ -157,6 +157,12 @@ export function FishSchool({ center = DEFAULT_CENTER }: { center?: [number, numb
       else if (sp < MIN_SPEED) v.setLength(MIN_SPEED);
 
       p.addScaledVector(v, dt);
+
+      // soft floor: don't let fish dip below the seabed
+      if (p.y < FLOOR_Y) {
+        p.y = FLOOR_Y;
+        if (v.y < 0) v.y = -v.y * 0.5;
+      }
     }
 
     // 3) write instance matrices (point the cone tip / head along velocity)
