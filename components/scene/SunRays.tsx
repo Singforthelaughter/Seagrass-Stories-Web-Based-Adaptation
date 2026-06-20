@@ -35,19 +35,20 @@ uniform float uTime;
 uniform vec3 uColor;
 uniform float uIntensity;
 
-// soft vertical streaks from layered sines drifting sideways over time
+// soft vertical shafts from layered sines drifting sideways over time
 float shafts(float x, float t) {
-  float v = sin(x * 7.0 + t * 0.25);
-  v += 0.5 * sin(x * 15.0 - t * 0.18);
-  v += 0.25 * sin(x * 31.0 + t * 0.4);
-  v = v / 1.75;                 // → ~[-1, 1]
-  return smoothstep(0.25, 1.0, v * 0.5 + 0.5);
+  float a = sin(x * 5.0 + t * 0.20) * 0.5 + 0.5;
+  a = pow(a, 3.0);                                  // sharpen into distinct beams
+  float b = sin(x * 11.0 - t * 0.13) * 0.5 + 0.5;
+  b = pow(b, 2.0);
+  return a * 0.8 + b * 0.5;
 }
 
 void main() {
   float rays = shafts(vUv.x, uTime);
-  float topFade = smoothstep(0.0, 0.85, vUv.y);          // brightest near surface
-  float edgeFade = smoothstep(0.0, 0.18, vUv.x) * smoothstep(1.0, 0.82, vUv.x);
+  // brightest up high but still strong at eye level; soft fade at very bottom
+  float topFade = smoothstep(-0.1, 0.7, vUv.y);
+  float edgeFade = smoothstep(0.0, 0.2, vUv.x) * smoothstep(1.0, 0.8, vUv.x);
   float a = rays * topFade * edgeFade * uIntensity;
   gl_FragColor = vec4(uColor * a, a);
 }
@@ -55,7 +56,7 @@ void main() {
 
 export function SunRays({
   color = "#cfeeff",
-  intensity = 0.5,
+  intensity = 1.2,
 }: {
   color?: string;
   intensity?: number;
