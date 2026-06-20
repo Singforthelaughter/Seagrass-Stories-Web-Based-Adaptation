@@ -24,7 +24,7 @@ const FRONT_OFFSET = 0; // at yaw 0 the model already faces +Z (toward the camer
 const REST_HEADING = Math.PI; // while playing (idle), head points away from the camera
 const SWIM_LEAN = Math.PI * 0.42; // forward tilt so the diver swims prone, not upright
 const TRANSITION_DUR = 3.8; // seconds for the personalise → playing camera move
-const SWIM_SPEED = 4.5; // world units / second at full joystick deflection
+const SWIM_SPEED = 3; // world units / second at full joystick deflection
 const SWIM_BOUND = 90; // keep the diver within the meadow
 
 const _camGoal = new THREE.Vector3();

@@ -31,10 +31,10 @@ const W_BOUND = 2.2; // pull back when outside the school sphere
 const BOUND_RADIUS = 8.0; // larger volume → more dispersed shoal
 
 // Predators to flee: the diver and the camera (so fish never swim through view).
-const DIVER_AVOID = 5.0;
-const W_DIVER = 22.0;
-const CAMERA_AVOID = 5.5;
-const W_CAMERA = 26.0;
+const DIVER_AVOID = 7.5;
+const W_DIVER = 28.0;
+const CAMERA_AVOID = 8.0;
+const W_CAMERA = 32.0;
 
 // Seafloor avoidance: steer up smoothly when within FLOOR_AVOID of the seabed
 // (seafloor sits at y=0), so fish hug just above it without diving through.
