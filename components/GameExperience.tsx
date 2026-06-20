@@ -12,6 +12,7 @@ import { WaterDistortion } from "./scene/WaterDistortion";
 import { Diver } from "./scene/Diver";
 import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
 import { useGame } from "@/lib/store";
+import { useQualityTier } from "@/lib/useQualityTier";
 import { smootherstep as smooth } from "@/lib/ease";
 
 const WATER_COLOR = "#0b3547";
@@ -169,11 +170,13 @@ function Controls({
 export function GameExperience() {
   const controls = useRef<OrbitControlsImpl | null>(null);
   const progress = useRef(0); // dive-in transition: 0 = personalise, 1 = playing
+  const tier = useQualityTier();
+  const low = tier === "low"; // weak phones: trim shadows, post FX, dpr, caustics
 
   return (
     <Canvas
-      shadows
-      dpr={[1, 1.5]}
+      shadows={!low}
+      dpr={low ? 1 : [1, 1.5]}
       camera={{ position: [0, FLOAT_Y - VIEW_DROP + 0.3, 4.2], fov: 46, near: 0.1, far: 200 }}
       gl={{ antialias: true }}
     >
@@ -186,7 +189,7 @@ export function GameExperience() {
         position={[6, 18, 8]}
         intensity={1.2}
         color="#dff4ff"
-        castShadow
+        castShadow={!low}
         shadow-mapSize={[1024, 1024]}
         shadow-camera-left={-30}
         shadow-camera-right={30}
@@ -195,17 +198,20 @@ export function GameExperience() {
       />
 
       <UnderwaterEnvironment />
-      <Seafloor progress={progress}>
+      <Seafloor progress={progress} lowQuality={low}>
         <SeagrassField />
       </Seafloor>
       <DiverRig controls={controls} progress={progress} />
       <Controls controls={controls} />
 
       {/* Subtle "through water" wobble over the whole 3D scene (not the UI).
-          A single UV-warp pass — very cheap; multisampling kept low for tablets. */}
-      <EffectComposer multisampling={2} enableNormalPass={false}>
-        <WaterDistortion amplitude={0.0035} frequency={16} speed={0.8} />
-      </EffectComposer>
+          A single UV-warp pass; skipped entirely on low-end phones to save a
+          full-screen pass. */}
+      {!low && (
+        <EffectComposer multisampling={2} enableNormalPass={false}>
+          <WaterDistortion amplitude={0.0035} frequency={16} speed={0.8} />
+        </EffectComposer>
+      )}
     </Canvas>
   );
 }

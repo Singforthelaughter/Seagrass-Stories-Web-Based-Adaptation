@@ -15,21 +15,21 @@ import { smootherstep } from "@/lib/ease";
  * light pattern on top. This is applied to the seafloor material ONLY.
  */
 
-// Classic tileable water caustic (after Dave Hoskins, Shadertoy MdlXz8),
-// trimmed to 4 iterations for cheaper per-pixel cost.
-const CAUSTIC_FN = /* glsl */ `
+// Classic tileable water caustic (after Dave Hoskins, Shadertoy MdlXz8).
+// Iteration count is parametrised so low-end phones can run fewer.
+const causticFn = (iterations: number) => /* glsl */ `
 #define CAUSTIC_TAU 6.28318530718
 float seafloorCaustic(vec2 uv, float time) {
   vec2 p = mod(uv * CAUSTIC_TAU, CAUSTIC_TAU) - 250.0;
   vec2 i = vec2(p);
   float c = 1.0;
   float inten = 0.005;
-  for (int n = 0; n < 4; n++) {
+  for (int n = 0; n < ${iterations}; n++) {
     float t = time * (1.0 - (3.5 / float(n + 1)));
     i = p + vec2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
     c += 1.0 / length(vec2(p.x / (sin(i.x + t) / inten), p.y / (cos(i.y + t) / inten)));
   }
-  c /= 4.0;
+  c /= float(${iterations});
   c = 1.17 - pow(c, 1.4);
   return pow(abs(c), 8.0);
 }
@@ -38,11 +38,14 @@ float seafloorCaustic(vec2 uv, float time) {
 export function Seafloor({
   progress,
   children,
+  lowQuality = false,
 }: {
   progress: React.RefObject<number>;
   /** Rendered inside the same scaling group (e.g. the seagrass meadow), so it
    *  grows in together with the floor. Children are NOT rotated like the plane. */
   children?: React.ReactNode;
+  /** Low-end phones: fewer caustic iterations + a single layer. */
+  lowQuality?: boolean;
 }) {
   const ref = useRef<THREE.Group>(null!);
   // Shared time uniform: the same object is handed to the compiled shader, so
@@ -74,32 +77,36 @@ export function Seafloor({
           "#include <worldpos_vertex>\n  vSeafloorWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;",
         );
 
+      // Low tier: fewer iterations and a single caustic layer. Full tier blends
+      // two layers (incommensurate scale + ~31° rotation) to hide the tiling.
+      const applyBlock = lowQuality
+        ? "{\n" +
+          "  vec2 cuv = vSeafloorWorld.xz * uCausticScale;\n" +
+          "  float cc = seafloorCaustic(cuv, uCausticTime);\n" +
+          "  gl_FragColor.rgb += uCausticColor * cc * uCausticStrength;\n" +
+          "}\n#include <tonemapping_fragment>"
+        : "{\n" +
+          "  vec2 cuv = vSeafloorWorld.xz * uCausticScale;\n" +
+          "  mat2 R = mat2(0.857, -0.515, 0.515, 0.857);\n" +
+          "  float c1 = seafloorCaustic(cuv, uCausticTime);\n" +
+          "  float c2 = seafloorCaustic(cuv * 1.37 * R + 13.1, uCausticTime * 1.21);\n" +
+          "  float cc = (c1 + c2) * 0.5;\n" +
+          "  gl_FragColor.rgb += uCausticColor * cc * uCausticStrength;\n" +
+          "}\n#include <tonemapping_fragment>";
+
       shader.fragmentShader = shader.fragmentShader
         .replace(
           "#include <common>",
           "#include <common>\nvarying vec3 vSeafloorWorld;\nuniform float uCausticTime;\nuniform float uCausticScale;\nuniform float uCausticStrength;\nuniform vec3 uCausticColor;\n" +
-            CAUSTIC_FN,
+            causticFn(lowQuality ? 3 : 4),
         )
         // Add caustics as linear light just before tonemapping, so they fade
         // naturally with the underwater fog further out.
-        .replace(
-          "#include <tonemapping_fragment>",
-          // Blend two layers at an incommensurate scale + ~31° rotation so the
-          // tiling period becomes very long (no obvious repeat) while each
-          // layer keeps the same cell size.
-          "{\n" +
-            "  vec2 cuv = vSeafloorWorld.xz * uCausticScale;\n" +
-            "  mat2 R = mat2(0.857, -0.515, 0.515, 0.857);\n" +
-            "  float c1 = seafloorCaustic(cuv, uCausticTime);\n" +
-            "  float c2 = seafloorCaustic(cuv * 1.37 * R + 13.1, uCausticTime * 1.21);\n" +
-            "  float cc = (c1 + c2) * 0.5;\n" +
-            "  gl_FragColor.rgb += uCausticColor * cc * uCausticStrength;\n" +
-            "}\n#include <tonemapping_fragment>",
-        );
+        .replace("#include <tonemapping_fragment>", applyBlock);
     };
 
     return mat;
-  }, []);
+  }, [lowQuality]);
 
   useFrame((state) => {
     const e = smootherstep(progress.current);
