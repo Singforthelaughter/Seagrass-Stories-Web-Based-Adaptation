@@ -18,16 +18,16 @@ import { useQualityTier } from "@/lib/useQualityTier";
  */
 
 // --- tuning ---------------------------------------------------------------
-const PERCEPTION = 2.4; // neighbour radius (also the grid cell size)
-const SEP_DIST = 1.0; // start pushing apart closer than this
+const PERCEPTION = 3.0; // neighbour radius (also the grid cell size)
+const SEP_DIST = 1.7; // start pushing apart closer than this
 const MAX_SPEED = 3.4;
 const MIN_SPEED = 1.3;
 const MAX_FORCE = 6.0; // steering acceleration clamp
-const W_SEP = 1.7;
+const W_SEP = 2.3;
 const W_ALI = 1.0;
-const W_COH = 0.9;
-const W_BOUND = 3.0; // pull back when outside the school sphere
-const BOUND_RADIUS = 3.5;
+const W_COH = 0.55;
+const W_BOUND = 2.2; // pull back when outside the school sphere
+const BOUND_RADIUS = 8.0; // larger volume → more dispersed shoal
 
 // Seafloor avoidance: steer up smoothly when within FLOOR_AVOID of the seabed
 // (seafloor sits at y=0), so fish hug just above it without diving through.
