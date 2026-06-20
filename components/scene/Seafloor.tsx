@@ -51,7 +51,7 @@ export function Seafloor({ progress }: { progress: React.RefObject<number> }) {
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.uCausticTime = time.current;
       shader.uniforms.uCausticScale = { value: 0.13 }; // feature size (smaller = bigger cells)
-      shader.uniforms.uCausticStrength = { value: 0.7 };
+      shader.uniforms.uCausticStrength = { value: 0.42 };
       shader.uniforms.uCausticColor = { value: new THREE.Color("#cdf3ff") };
 
       // Pass world position through so caustics sit in world space (stable as
