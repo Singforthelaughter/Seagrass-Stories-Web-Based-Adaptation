@@ -8,7 +8,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { Seafloor } from "./scene/Seafloor";
 import { SeagrassField } from "./scene/Seagrass";
-import { FishSchool } from "./scene/FishSchool";
+// import { FishSchool } from "./scene/FishSchool"; // boids hidden for now
 import { WaterDistortion } from "./scene/WaterDistortion";
 import { Diver } from "./scene/Diver";
 import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
@@ -205,8 +205,8 @@ export function GameExperience() {
         <SeagrassField />
       </Seafloor>
       <DiverRig controls={controls} progress={progress} />
-      {/* Boids fish — shown in all phases for now (testing placeholder). */}
-      <FishSchool />
+      {/* Boids fish — hidden for now. Re-enable by uncommenting <FishSchool />. */}
+      {/* <FishSchool /> */}
       <Controls controls={controls} />
 
       {/* Subtle "through water" wobble over the whole 3D scene (not the UI).
