@@ -7,19 +7,6 @@ import { useGame } from "@/lib/store";
 import { ensureSession, getAccessToken, loadTextureHistory } from "@/lib/player";
 import { Joystick } from "@/components/ui/Joystick";
 
-const NAME_ADJ = [
-  "Coral", "Tidal", "Azure", "Kelp", "Reef", "Deep", "Marlin", "Lagoon",
-  "Pearl", "Drift", "Current", "Abyss", "Nautilus", "Manta", "Finned",
-];
-const NAME_NOUN = [
-  "Diver", "Voyager", "Explorer", "Drifter", "Ranger", "Nomad", "Wanderer",
-  "Seeker", "Pioneer", "Glider",
-];
-const randomName = () =>
-  `${NAME_ADJ[Math.floor(Math.random() * NAME_ADJ.length)]}${
-    NAME_NOUN[Math.floor(Math.random() * NAME_NOUN.length)]
-  }${Math.floor(Math.random() * 90 + 10)}`;
-
 // Three.js touches the DOM/WebGL — load the canvas client-side only.
 const GameExperience = dynamic(
   () => import("@/components/GameExperience").then((m) => m.GameExperience),
@@ -36,24 +23,20 @@ const GameExperience = dynamic(
 export default function PlayPage() {
   const phase = useGame((s) => s.phase);
   const setPhase = useGame((s) => s.setPhase);
-  const setUsername = useGame((s) => s.setUsername);
   const setSuitTextureUrl = useGame((s) => s.setSuitTextureUrl);
   const suitTextureUrl = useGame((s) => s.suitTextureUrl);
   const addSuitTexture = useGame((s) => s.addSuitTexture);
   const setSuitHistory = useGame((s) => s.setSuitHistory);
   const suitTextureHistory = useGame((s) => s.suitTextureHistory);
-  const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDesigns, setShowDesigns] = useState(false);
 
-  // Always begin at the personalise step when this page mounts, and give the
-  // player a ready-made name so they can skip the field entirely. Also sign in
-  // anonymously and load any previously saved wetsuit designs from Supabase.
+  // Begin at the personalise step. Sign in anonymously (this gives each player a
+  // stable, unique id — no username needed) and load any saved wetsuit designs.
   useEffect(() => {
     setPhase("personalise");
-    setName(randomName());
     (async () => {
       await ensureSession();
       const history = await loadTextureHistory();
@@ -90,7 +73,6 @@ export default function PlayPage() {
   }
 
   function diveIn() {
-    setUsername(name.trim() || "Diver");
     setPhase("playing");
   }
 
@@ -178,11 +160,11 @@ export default function PlayPage() {
         }`}
       >
         <div className="w-full max-w-sm text-center">
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">Make your diver</h1>
+          <h1 className="text-2xl font-bold text-white sm:text-3xl">Design your diver</h1>
           <p className="mt-1 text-xs text-[#9fc4d0]">Drag to rotate · pinch to zoom</p>
         </div>
 
-        {/* PRIMARY: design the wetsuit with AI */}
+        {/* Design the wetsuit with AI */}
         <div className="pointer-events-auto w-full max-w-sm">
           <label className="mb-1.5 block text-sm font-semibold text-white">
             🎨 Design your wetsuit
@@ -223,25 +205,6 @@ export default function PlayPage() {
               </button>
             )}
           </div>
-
-        </div>
-
-        {/* SECONDARY: optional name (pre-filled with a random one) */}
-        <div className="pointer-events-auto flex w-full max-w-sm items-center gap-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Diver name"
-            maxLength={20}
-            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-[#cfeaf2] placeholder-[#7fa3b0] outline-none backdrop-blur focus:border-[#19c6c6]"
-          />
-          <button
-            onClick={() => setName(randomName())}
-            title="Random name"
-            className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-[#cfeaf2] backdrop-blur transition active:scale-95"
-          >
-            🎲
-          </button>
         </div>
 
         {/* CTA */}

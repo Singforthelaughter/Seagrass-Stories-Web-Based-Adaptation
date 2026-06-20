@@ -1,6 +1,7 @@
 "use client";
 
 import { getSupabase } from "./supabaseClient";
+import { useGame } from "./store";
 
 /**
  * Player session helpers (browser). Everything degrades gracefully: if Supabase
@@ -31,6 +32,8 @@ export async function ensureSession() {
 
   const user = session?.user;
   if (user) {
+    // user.id is the stable, unique player id used throughout the app.
+    useGame.getState().setPlayerId(user.id);
     await sb
       .from("players")
       .upsert({ id: user.id, last_seen: new Date().toISOString() }, { onConflict: "id" });

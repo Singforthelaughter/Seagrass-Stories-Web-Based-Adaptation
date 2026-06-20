@@ -10,9 +10,12 @@ interface GameState {
   /** Current stage of the single shared 3D experience. */
   phase: Phase;
   setPhase: (p: Phase) => void;
-  /** The player's chosen diver name (set on the Personalise screen). */
-  username: string;
-  setUsername: (name: string) => void;
+  /**
+   * Stable, unique player id = the Supabase anonymous auth uid (persisted across
+   * reloads). Used to identify the player consistently; there is no username.
+   */
+  playerId: string | null;
+  setPlayerId: (id: string | null) => void;
   /** AI-generated wetsuit (M_Suit) texture, as a data URL. null = plain white. */
   suitTextureUrl: string | null;
   setSuitTextureUrl: (url: string | null) => void;
@@ -47,8 +50,8 @@ interface GameState {
 export const useGame = create<GameState>((set) => ({
   phase: "personalise",
   setPhase: (p) => set({ phase: p }),
-  username: "",
-  setUsername: (name) => set({ username: name }),
+  playerId: null,
+  setPlayerId: (id) => set({ playerId: id }),
   suitTextureUrl: null,
   setSuitTextureUrl: (url) => set({ suitTextureUrl: url }),
   suitTextureHistory: [],
