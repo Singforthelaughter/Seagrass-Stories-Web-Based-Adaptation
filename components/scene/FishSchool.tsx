@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useQualityTier } from "@/lib/useQualityTier";
+import { useGame } from "@/lib/store";
 
 /**
  * A school of fish driven by CPU boids (Reynolds: separation / alignment /
@@ -22,12 +23,18 @@ const PERCEPTION = 3.0; // neighbour radius (also the grid cell size)
 const SEP_DIST = 1.7; // start pushing apart closer than this
 const MAX_SPEED = 3.4;
 const MIN_SPEED = 1.3;
-const MAX_FORCE = 6.0; // steering acceleration clamp
+const MAX_FORCE = 8.0; // steering acceleration clamp (room for avoidance)
 const W_SEP = 2.3;
 const W_ALI = 1.0;
 const W_COH = 0.55;
 const W_BOUND = 2.2; // pull back when outside the school sphere
 const BOUND_RADIUS = 8.0; // larger volume → more dispersed shoal
+
+// Predators to flee: the diver and the camera (so fish never swim through view).
+const DIVER_AVOID = 3.0;
+const W_DIVER = 12.0;
+const CAMERA_AVOID = 3.2;
+const W_CAMERA = 14.0;
 
 // Seafloor avoidance: steer up smoothly when within FLOOR_AVOID of the seabed
 // (seafloor sits at y=0), so fish hug just above it without diving through.
@@ -62,6 +69,7 @@ const _diff = new THREE.Vector3();
 const _steer = new THREE.Vector3();
 const _toCenter = new THREE.Vector3();
 const _dir = new THREE.Vector3();
+const _away = new THREE.Vector3();
 
 const cellKey = (x: number, y: number, z: number) =>
   `${Math.floor(x / PERCEPTION)},${Math.floor(y / PERCEPTION)},${Math.floor(z / PERCEPTION)}`;
@@ -112,6 +120,8 @@ export function FishSchool({
   useFrame((_state, delta) => {
     const dt = Math.min(delta, 0.05);
     const { pos, vel, dummy, grid } = sim;
+    const diverPos = useGame.getState().diverPos; // live, mutated in place
+    const camPos = camera.position;
 
     // 0) ease the school centre toward a point ahead of the camera (subtle).
     //    Flatten the look direction to keep the target at a near-floor height,
@@ -194,6 +204,22 @@ export function FishSchool({
       if (above < FLOOR_AVOID) {
         const t = 1 - Math.max(above, 0) / FLOOR_AVOID; // 0 at threshold → 1 at floor
         _steer.y += W_FLOOR * t * t;
+      }
+
+      // flee the diver
+      _away.subVectors(p, diverPos);
+      const dD = _away.length();
+      if (dD > 1e-3 && dD < DIVER_AVOID) {
+        const t = 1 - dD / DIVER_AVOID;
+        _steer.addScaledVector(_away.divideScalar(dD), W_DIVER * t * t);
+      }
+
+      // flee the camera (so fish never swim into the viewer's face)
+      _away.subVectors(p, camPos);
+      const dC = _away.length();
+      if (dC > 1e-3 && dC < CAMERA_AVOID) {
+        const t = 1 - dC / CAMERA_AVOID;
+        _steer.addScaledVector(_away.divideScalar(dC), W_CAMERA * t * t);
       }
 
       // clamp steering, integrate velocity, clamp speed

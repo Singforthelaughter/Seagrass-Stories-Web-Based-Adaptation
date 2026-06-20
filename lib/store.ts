@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import * as THREE from "three";
 
 export type Vec3 = [number, number, number];
 
@@ -29,6 +30,11 @@ interface GameState {
    */
   move: [number, number];
   setMove: (x: number, y: number) => void;
+  /**
+   * The diver's live world position, mutated in place each frame (no re-render).
+   * Read by other systems (e.g. the fish school) that need to avoid the diver.
+   */
+  diverPos: THREE.Vector3;
 }
 
 export const useGame = create<GameState>((set) => ({
@@ -47,4 +53,5 @@ export const useGame = create<GameState>((set) => ({
   setSuitHistory: (urls) => set({ suitTextureHistory: urls }),
   move: [0, 0],
   setMove: (x, y) => set({ move: [x, y] }),
+  diverPos: new THREE.Vector3(),
 }));

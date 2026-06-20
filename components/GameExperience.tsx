@@ -86,6 +86,8 @@ function DiverRig({
       p.z = THREE.MathUtils.clamp(p.z + mz * step, -SWIM_BOUND, SWIM_BOUND);
     }
     p.y = THREE.MathUtils.lerp(FLOAT_Y, SWIM_HEIGHT, e) + bob;
+    // publish the diver's world position for other systems (e.g. fish avoidance)
+    useGame.getState().diverPos.copy(p);
 
     // --- facing: turn toward travel direction; lean forward while swimming ---
     if (!playing) {
