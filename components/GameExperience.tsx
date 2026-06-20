@@ -1,14 +1,15 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { EffectComposer, GodRays } from "@react-three/postprocessing";
+import { EffectComposer } from "@react-three/postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { Seafloor } from "./scene/Seafloor";
 import { SeagrassField } from "./scene/Seagrass";
 import { FishSchool } from "./scene/FishSchool";
+import { SunRays } from "./scene/SunRays";
 import { WaterDistortion } from "./scene/WaterDistortion";
 import { Diver } from "./scene/Diver";
 import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
@@ -173,18 +174,12 @@ function Controls({
 // Marine life returns once the meadow is at least this healthy.
 const FISH_HEALTH_THRESHOLD = 0.5;
 
-// Sun position: high above and slightly forward (the -Z look direction), so the
-// god rays sit in the upper part of the frame across all phases.
-const SUN_POS: [number, number, number] = [0, 55, -26];
-
 export function GameExperience() {
   const controls = useRef<OrbitControlsImpl | null>(null);
   const progress = useRef(0); // dive-in transition: 0 = personalise, 1 = playing
   const tier = useQualityTier();
   const low = tier === "low"; // weak phones: trim shadows, post FX, dpr, caustics
   const healthy = useGame((s) => s.health) >= FISH_HEALTH_THRESHOLD;
-  // The GodRays effect needs the actual sun mesh; capture it via a ref callback.
-  const [sun, setSun] = useState<THREE.Mesh | null>(null);
 
   return (
     <Canvas
@@ -210,12 +205,9 @@ export function GameExperience() {
         shadow-camera-bottom={-30}
       />
 
-      {/* Sun disc above the surface — the source for the god rays. Unlit and
-          unfogged so it stays bright; the GodRays effect samples it. */}
-      <mesh ref={setSun} position={SUN_POS}>
-        <sphereGeometry args={[7, 24, 24]} />
-        <meshBasicMaterial color="#fff1d4" fog={false} toneMapped={false} />
-      </mesh>
+      {/* Sun shafts shining into the water — cheap additive curtains, visible
+          from any camera angle and on every tier. */}
+      <SunRays />
 
       <UnderwaterEnvironment />
       <Seafloor progress={progress} lowQuality={low}>
@@ -226,21 +218,9 @@ export function GameExperience() {
       {healthy && <FishSchool />}
       <Controls controls={controls} />
 
-      {/* Post FX (full tier only — skipped on low-end phones):
-          - GodRays: sun shafts shining into the water (needs the sun mesh)
-          - WaterDistortion: subtle "through water" UV wobble */}
-      {!low && sun && (
+      {/* Subtle "through water" wobble (full tier only — skipped on low-end). */}
+      {!low && (
         <EffectComposer multisampling={2} enableNormalPass={false}>
-          <GodRays
-            sun={sun}
-            samples={50}
-            density={0.95}
-            decay={0.92}
-            weight={0.5}
-            exposure={0.45}
-            clampMax={0.9}
-            blur
-          />
           <WaterDistortion amplitude={0.0035} frequency={16} speed={0.8} />
         </EffectComposer>
       )}
