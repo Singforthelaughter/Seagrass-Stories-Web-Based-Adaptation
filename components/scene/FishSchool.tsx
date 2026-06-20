@@ -28,13 +28,19 @@ const W_ALI = 1.0;
 const W_COH = 0.9;
 const W_BOUND = 3.0; // pull back when outside the school sphere
 const BOUND_RADIUS = 3.5;
-const FLOOR_Y = 0.6; // keep fish just above the seafloor (seafloor sits at y=0)
+
+// Seafloor avoidance: steer up smoothly when within FLOOR_AVOID of the seabed
+// (seafloor sits at y=0), so fish hug just above it without diving through.
+const FLOOR_Y = 0;
+const FLOOR_AVOID = 1.8; // height at which the upward push begins
+const W_FLOOR = 6.0; // strength of the avoidance
+const FLOOR_MIN = 0.5; // hard safety floor as a last resort
 
 const FISH_LENGTH = 0.6;
 const FISH_RADIUS = 0.16;
 
 // Default school centre — low, just above the seafloor.
-const DEFAULT_CENTER: [number, number, number] = [0, 2.5, 0];
+const DEFAULT_CENTER: [number, number, number] = [0, 2.3, 0];
 
 const UP_Y = new THREE.Vector3(0, 1, 0); // cone tip axis → aligned to velocity
 
@@ -149,6 +155,13 @@ export function FishSchool({ center = DEFAULT_CENTER }: { center?: [number, numb
         _steer.add(_toCenter);
       }
 
+      // seafloor avoidance: ramp an upward push as the fish nears the seabed
+      const above = p.y - FLOOR_Y;
+      if (above < FLOOR_AVOID) {
+        const t = 1 - Math.max(above, 0) / FLOOR_AVOID; // 0 at threshold → 1 at floor
+        _steer.y += W_FLOOR * t * t;
+      }
+
       // clamp steering, integrate velocity, clamp speed
       if (_steer.lengthSq() > MAX_FORCE * MAX_FORCE) _steer.setLength(MAX_FORCE);
       v.addScaledVector(_steer, dt);
@@ -158,10 +171,10 @@ export function FishSchool({ center = DEFAULT_CENTER }: { center?: [number, numb
 
       p.addScaledVector(v, dt);
 
-      // soft floor: don't let fish dip below the seabed
-      if (p.y < FLOOR_Y) {
-        p.y = FLOOR_Y;
-        if (v.y < 0) v.y = -v.y * 0.5;
+      // hard safety floor (the avoidance force above does the real work)
+      if (p.y < FLOOR_MIN) {
+        p.y = FLOOR_MIN;
+        if (v.y < 0) v.y = 0;
       }
     }
 
