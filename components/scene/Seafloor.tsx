@@ -35,8 +35,16 @@ float seafloorCaustic(vec2 uv, float time) {
 }
 `;
 
-export function Seafloor({ progress }: { progress: React.RefObject<number> }) {
-  const ref = useRef<THREE.Mesh>(null!);
+export function Seafloor({
+  progress,
+  children,
+}: {
+  progress: React.RefObject<number>;
+  /** Rendered inside the same scaling group (e.g. the seagrass meadow), so it
+   *  grows in together with the floor. Children are NOT rotated like the plane. */
+  children?: React.ReactNode;
+}) {
+  const ref = useRef<THREE.Group>(null!);
   // Shared time uniform: the same object is handed to the compiled shader, so
   // mutating .value each frame animates the caustics without recompiling.
   const time = useRef({ value: 0 });
@@ -101,16 +109,11 @@ export function Seafloor({ progress }: { progress: React.RefObject<number> }) {
   });
 
   return (
-    <mesh
-      ref={ref}
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, 0, 0]}
-      scale={0}
-      visible={false}
-      receiveShadow
-      material={material}
-    >
-      <planeGeometry args={[200, 200, 1, 1]} />
-    </mesh>
+    <group ref={ref} scale={0} visible={false}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow material={material}>
+        <planeGeometry args={[200, 200, 1, 1]} />
+      </mesh>
+      {children}
+    </group>
   );
 }

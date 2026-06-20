@@ -138,7 +138,7 @@ function DiverRig({
           <Diver targetLength={2.3} />
         </group>
       </group>
-      <directionalLight ref={headlamp} intensity={1.1} color="#eaf7ff" target={headTarget} />
+      <directionalLight ref={headlamp} intensity={1} color="#eaf7ff" target={headTarget} />
       <primitive object={headTarget} />
     </>
   );
@@ -195,8 +195,9 @@ export function GameExperience() {
       />
 
       <UnderwaterEnvironment />
-      <Seafloor progress={progress} />
-      <SeagrassField progress={progress} />
+      <Seafloor progress={progress}>
+        <SeagrassField />
+      </Seafloor>
       <DiverRig controls={controls} progress={progress} />
       <Controls controls={controls} />
 

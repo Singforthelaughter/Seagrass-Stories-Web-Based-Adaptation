@@ -1,15 +1,13 @@
 "use client";
 
-import { useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useMemo } from "react";
 import { Clone, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import { smootherstep } from "@/lib/ease";
 
 /**
  * The seagrass meadow. Two authored variants (SM_SeaGrass_01 / _02) are mixed
- * randomly across the field for variety. Like the seafloor, the whole field
- * grows in on the same eased dive-in timeline (scale 0 → 1).
+ * randomly across the field for variety. It is rendered as a child of the
+ * seafloor's scaling group, so it grows in together with the floor on dive-in.
  *
  * Each variant is normalised to a target height so the two models read at a
  * consistent size regardless of their authored scale.
@@ -32,8 +30,7 @@ type Blade = {
   scale: number;
 };
 
-export function SeagrassField({ progress }: { progress: React.RefObject<number> }) {
-  const group = useRef<THREE.Group>(null!);
+export function SeagrassField() {
   const gltf0 = useGLTF(MODELS[0]);
   const gltf1 = useGLTF(MODELS[1]);
 
@@ -60,17 +57,10 @@ export function SeagrassField({ progress }: { progress: React.RefObject<number> 
     }));
   }, []);
 
-  // Grow in with the dive-in transition, exactly like the seafloor.
-  useFrame(() => {
-    const e = smootherstep(progress.current);
-    group.current.visible = e > 0.001;
-    group.current.scale.setScalar(Math.max(e, 1e-4));
-  });
-
   const scenes = [gltf0.scene, gltf1.scene];
 
   return (
-    <group ref={group} scale={0} visible={false}>
+    <group>
       {blades.map((b, i) => (
         <Clone
           key={i}
