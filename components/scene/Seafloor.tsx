@@ -51,7 +51,7 @@ export function Seafloor({ progress }: { progress: React.RefObject<number> }) {
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.uCausticTime = time.current;
       shader.uniforms.uCausticScale = { value: 0.13 }; // feature size (smaller = bigger cells)
-      shader.uniforms.uCausticStrength = { value: 0.55 };
+      shader.uniforms.uCausticStrength = { value: 0.7 };
       shader.uniforms.uCausticColor = { value: new THREE.Color("#cdf3ff") };
 
       // Pass world position through so caustics sit in world space (stable as
@@ -76,7 +76,17 @@ export function Seafloor({ progress }: { progress: React.RefObject<number> }) {
         // naturally with the underwater fog further out.
         .replace(
           "#include <tonemapping_fragment>",
-          "{\n  vec2 cuv = vSeafloorWorld.xz * uCausticScale;\n  float cc = seafloorCaustic(cuv, uCausticTime);\n  gl_FragColor.rgb += uCausticColor * cc * uCausticStrength;\n}\n#include <tonemapping_fragment>",
+          // Blend two layers at an incommensurate scale + ~31° rotation so the
+          // tiling period becomes very long (no obvious repeat) while each
+          // layer keeps the same cell size.
+          "{\n" +
+            "  vec2 cuv = vSeafloorWorld.xz * uCausticScale;\n" +
+            "  mat2 R = mat2(0.857, -0.515, 0.515, 0.857);\n" +
+            "  float c1 = seafloorCaustic(cuv, uCausticTime);\n" +
+            "  float c2 = seafloorCaustic(cuv * 1.37 * R + 13.1, uCausticTime * 1.21);\n" +
+            "  float cc = (c1 + c2) * 0.5;\n" +
+            "  gl_FragColor.rgb += uCausticColor * cc * uCausticStrength;\n" +
+            "}\n#include <tonemapping_fragment>",
         );
     };
 
