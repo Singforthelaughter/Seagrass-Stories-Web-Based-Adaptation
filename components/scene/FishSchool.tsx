@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useQualityTier } from "@/lib/useQualityTier";
 
@@ -42,7 +42,17 @@ const FISH_RADIUS = 0.16;
 // Default school centre — low, just above the seafloor.
 const DEFAULT_CENTER: [number, number, number] = [0, 2.3, 0];
 
+// Camera-following: keep the school roughly this far ahead of the camera, at a
+// fixed near-floor height, but only ease the centre when the ideal point drifts
+// outside a deadzone — so the follow stays subtle, not glued to the view.
+const AHEAD_DIST = 15; // units in front of the camera
+const SCHOOL_Y = 2.2; // fixed school height above the seafloor
+const FOLLOW_DEADZONE = 5; // don't reposition until the target strays this far
+const FOLLOW_BASE = 0.4; // easing base (smaller = faster catch-up); ~1.4s settle
+
 const UP_Y = new THREE.Vector3(0, 1, 0); // cone tip axis → aligned to velocity
+const _fwd = new THREE.Vector3();
+const _target = new THREE.Vector3();
 
 // scratch vectors (one school instance; reused each frame to avoid GC churn)
 const _sep = new THREE.Vector3();
@@ -56,10 +66,18 @@ const _dir = new THREE.Vector3();
 const cellKey = (x: number, y: number, z: number) =>
   `${Math.floor(x / PERCEPTION)},${Math.floor(y / PERCEPTION)},${Math.floor(z / PERCEPTION)}`;
 
-export function FishSchool({ center = DEFAULT_CENTER }: { center?: [number, number, number] }) {
+export function FishSchool({
+  center = DEFAULT_CENTER,
+  follow = true,
+}: {
+  center?: [number, number, number];
+  /** Slowly drift the school to stay ahead of the camera (subtly). */
+  follow?: boolean;
+}) {
   const tier = useQualityTier();
   const count = tier === "low" ? 40 : 120;
   const mesh = useRef<THREE.InstancedMesh>(null!);
+  const { camera } = useThree();
 
   const centerVec = useMemo(() => new THREE.Vector3(...center), [center]);
 
@@ -94,6 +112,22 @@ export function FishSchool({ center = DEFAULT_CENTER }: { center?: [number, numb
   useFrame((_state, delta) => {
     const dt = Math.min(delta, 0.05);
     const { pos, vel, dummy, grid } = sim;
+
+    // 0) ease the school centre toward a point ahead of the camera (subtle).
+    //    Flatten the look direction to keep the target at a near-floor height,
+    //    and only move once it drifts past the deadzone, so small camera moves
+    //    don't visibly tug the school.
+    if (follow) {
+      camera.getWorldDirection(_fwd);
+      _fwd.y = 0;
+      if (_fwd.lengthSq() < 1e-4) _fwd.set(0, 0, -1);
+      else _fwd.normalize();
+      _target.copy(camera.position).addScaledVector(_fwd, AHEAD_DIST);
+      _target.y = SCHOOL_Y;
+      if (centerVec.distanceTo(_target) > FOLLOW_DEADZONE) {
+        centerVec.lerp(_target, 1 - Math.pow(FOLLOW_BASE, dt));
+      }
+    }
 
     // 1) rebuild the spatial hash grid
     grid.clear();
