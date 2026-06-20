@@ -1,24 +1,22 @@
 "use client";
 
-import { useMemo, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useMemo } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { useGame } from "@/lib/store";
 
 /**
- * Underwater sun shafts done as cheap additive "curtain" planes rather than
- * screen-space god rays — so the rays are always visible regardless of where the
- * camera looks (the real sun is overhead and never in frame).
+ * Underwater sun shafts as cheap additive "curtain" planes rather than
+ * screen-space god rays — visible from any angle (the real sun is overhead and
+ * never in frame). A few large vertical quads cross the scene; a tiny fragment
+ * shader draws soft drifting vertical beams. Additive blending makes the
+ * overlaps glow. Static (centred on the world) and large enough to span the
+ * whole meadow, so the camera is never embedded in them. Runs on every tier.
  *
- * A few large vertical quads cross through the scene at different yaws; a tiny
- * fragment shader draws soft vertical streaks (brightest near the surface,
- * fading downward) with slow horizontal drift. Additive blending makes the
- * overlaps glow like volumetric light. The whole set follows the camera in XZ
- * so the player is always within the shafts. Runs on every quality tier.
+ * Params are read live from the store so the temporary ?tune sliders can adjust
+ * them; once dialled in, bake the values into the store defaults.
  */
 
-const PLANE_W = 70;
-const PLANE_H = 70;
-const CENTER_Y = 15; // vertical centre; spans roughly y = -20 .. 50
 const ANGLES = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4]; // crossed curtains
 
 const vertexShader = /* glsl */ `
@@ -34,9 +32,10 @@ varying vec2 vUv;
 uniform float uTime;
 uniform vec3 uColor;
 uniform float uIntensity;
+uniform float uFreq;
 
-// soft vertical shafts from layered sines drifting sideways over time
 float shafts(float x, float t) {
+  x *= uFreq;
   float a = sin(x * 5.0 + t * 0.20) * 0.5 + 0.5;
   a = pow(a, 3.0);                                  // sharpen into distinct beams
   float b = sin(x * 11.0 - t * 0.13) * 0.5 + 0.5;
@@ -46,23 +45,15 @@ float shafts(float x, float t) {
 
 void main() {
   float rays = shafts(vUv.x, uTime);
-  // brightest up high but still strong at eye level; soft fade at very bottom
-  float topFade = smoothstep(-0.1, 0.7, vUv.y);
+  float topFade = smoothstep(-0.1, 0.7, vUv.y);    // strong up high, still at eye level
   float edgeFade = smoothstep(0.0, 0.2, vUv.x) * smoothstep(1.0, 0.8, vUv.x);
   float a = rays * topFade * edgeFade * uIntensity;
   gl_FragColor = vec4(uColor * a, a);
 }
 `;
 
-export function SunRays({
-  color = "#cfeeff",
-  intensity = 1.2,
-}: {
-  color?: string;
-  intensity?: number;
-}) {
-  const group = useRef<THREE.Group>(null!);
-  const { camera } = useThree();
+export function SunRays({ color = "#cfeeff" }: { color?: string }) {
+  const rays = useGame((s) => s.rays); // re-render on slider change (cheap)
 
   const material = useMemo(
     () =>
@@ -72,31 +63,32 @@ export function SunRays({
         uniforms: {
           uTime: { value: 0 },
           uColor: { value: new THREE.Color(color) },
-          uIntensity: { value: intensity },
+          uIntensity: { value: rays.intensity },
+          uFreq: { value: rays.freq },
         },
         transparent: true,
-        depthWrite: false, // don't occlude the scene behind the rays
+        depthWrite: false,
         blending: THREE.AdditiveBlending,
         side: THREE.DoubleSide,
         toneMapped: false,
         fog: false,
       }),
-    [color, intensity],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [color],
   );
 
   useFrame((state, dt) => {
-    material.uniforms.uTime.value = state.clock.elapsedTime;
-    // follow the camera in XZ so the player stays within the shafts
-    const k = 1 - Math.pow(0.01, Math.min(dt, 0.05));
-    group.current.position.x = THREE.MathUtils.lerp(group.current.position.x, camera.position.x, k);
-    group.current.position.z = THREE.MathUtils.lerp(group.current.position.z, camera.position.z, k);
+    const r = useGame.getState().rays;
+    material.uniforms.uTime.value += Math.min(dt, 0.05) * r.speed;
+    material.uniforms.uIntensity.value = r.intensity;
+    material.uniforms.uFreq.value = r.freq;
   });
 
   return (
-    <group ref={group} position={[0, CENTER_Y, 0]}>
+    <group position={[0, rays.centerY, 0]}>
       {ANGLES.map((a, i) => (
         <mesh key={i} rotation={[0, a, 0]} material={material} renderOrder={2}>
-          <planeGeometry args={[PLANE_W, PLANE_H]} />
+          <planeGeometry args={[rays.width, rays.height]} />
         </mesh>
       ))}
     </group>

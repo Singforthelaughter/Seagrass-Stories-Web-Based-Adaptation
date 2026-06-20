@@ -3,6 +3,16 @@ import * as THREE from "three";
 
 export type Vec3 = [number, number, number];
 
+/** Sun-ray tuning parameters. */
+export type RayParams = {
+  intensity: number;
+  speed: number;
+  freq: number; // streak frequency multiplier
+  centerY: number; // vertical centre of the shafts
+  height: number; // plane height
+  width: number; // plane width
+};
+
 /** "personalise" = inspecting the diver up close; "playing" = in the meadow. */
 export type Phase = "personalise" | "playing";
 
@@ -40,6 +50,9 @@ interface GameState {
    */
   health: number;
   setHealth: (h: number) => void;
+  /** Tunable sun-ray params (temporary dev sliders, gated behind ?tune). */
+  rays: RayParams;
+  setRays: (p: Partial<RayParams>) => void;
   /**
    * The diver's live world position, mutated in place each frame (no re-render).
    * Read by other systems (e.g. the fish school) that need to avoid the diver.
@@ -66,4 +79,6 @@ export const useGame = create<GameState>((set) => ({
   diverPos: new THREE.Vector3(),
   health: 0,
   setHealth: (h) => set({ health: Math.max(0, Math.min(1, h)) }),
+  rays: { intensity: 1.2, speed: 1.0, freq: 1.0, centerY: 18, height: 90, width: 220 },
+  setRays: (p) => set((s) => ({ rays: { ...s.rays, ...p } })),
 }));

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useGame } from "@/lib/store";
 import { ensureSession, getAccessToken, loadTextureHistory } from "@/lib/player";
 import { Joystick } from "@/components/ui/Joystick";
+import { RayTuner } from "@/components/ui/RayTuner";
 
 // Three.js touches the DOM/WebGL — load the canvas client-side only.
 const GameExperience = dynamic(
@@ -218,6 +219,9 @@ export default function PlayPage() {
 
       {/* Gameplay controls */}
       {phase === "playing" && <Joystick />}
+
+      {/* Temporary sun-ray tuning sliders (only with ?tune in the URL) */}
+      <RayTuner />
     </main>
   );
 }
