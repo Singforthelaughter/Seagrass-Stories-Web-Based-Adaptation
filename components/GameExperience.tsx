@@ -138,7 +138,7 @@ function DiverRig({
           <Diver targetLength={2.3} />
         </group>
       </group>
-      <directionalLight ref={headlamp} intensity={1.6} color="#eaf7ff" target={headTarget} />
+      <directionalLight ref={headlamp} intensity={1.1} color="#eaf7ff" target={headTarget} />
       <primitive object={headTarget} />
     </>
   );
@@ -203,7 +203,7 @@ export function GameExperience() {
       {/* Subtle "through water" wobble over the whole 3D scene (not the UI).
           A single UV-warp pass — very cheap; multisampling kept low for tablets. */}
       <EffectComposer multisampling={2} enableNormalPass={false}>
-        <WaterDistortion amplitude={0.004} frequency={16} speed={0.8} />
+        <WaterDistortion amplitude={0.0035} frequency={16} speed={0.8} />
       </EffectComposer>
     </Canvas>
   );
