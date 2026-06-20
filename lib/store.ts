@@ -7,7 +7,8 @@ export type Vec3 = [number, number, number];
 export type RayParams = {
   intensity: number;
   speed: number;
-  freq: number; // streak frequency multiplier
+  freq: number; // streak frequency multiplier (how many / spacing)
+  sharp: number; // beam thinness (higher = thinner individual rays)
   centerY: number; // vertical centre of the shafts
   height: number; // plane height
   width: number; // plane width
@@ -79,6 +80,6 @@ export const useGame = create<GameState>((set) => ({
   diverPos: new THREE.Vector3(),
   health: 0,
   setHealth: (h) => set({ health: Math.max(0, Math.min(1, h)) }),
-  rays: { intensity: 1.2, speed: 1.0, freq: 1.0, centerY: 18, height: 90, width: 220 },
+  rays: { intensity: 1.2, speed: 1.0, freq: 1.0, sharp: 3, centerY: 18, height: 90, width: 220 },
   setRays: (p) => set((s) => ({ rays: { ...s.rays, ...p } })),
 }));

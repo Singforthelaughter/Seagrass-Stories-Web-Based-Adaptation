@@ -12,10 +12,11 @@ import type { RayParams } from "@/lib/store";
 const SLIDERS: { key: keyof RayParams; label: string; min: number; max: number; step: number }[] = [
   { key: "intensity", label: "Intensity", min: 0, max: 4, step: 0.05 },
   { key: "speed", label: "Speed", min: 0, max: 3, step: 0.05 },
-  { key: "freq", label: "Streak freq", min: 0.3, max: 3, step: 0.05 },
+  { key: "freq", label: "Count / spacing", min: 0.3, max: 3, step: 0.05 },
+  { key: "sharp", label: "Beam thinness", min: 1, max: 16, step: 0.5 },
   { key: "centerY", label: "Center Y", min: -10, max: 40, step: 1 },
   { key: "height", label: "Height", min: 20, max: 160, step: 2 },
-  { key: "width", label: "Width", min: 40, max: 320, step: 4 },
+  { key: "width", label: "Width", min: 0, max: 320, step: 4 },
 ];
 
 export function RayTuner() {

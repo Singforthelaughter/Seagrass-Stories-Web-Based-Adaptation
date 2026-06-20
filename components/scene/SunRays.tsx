@@ -33,13 +33,14 @@ uniform float uTime;
 uniform vec3 uColor;
 uniform float uIntensity;
 uniform float uFreq;
+uniform float uSharp;
 
 float shafts(float x, float t) {
   x *= uFreq;
   float a = sin(x * 5.0 + t * 0.20) * 0.5 + 0.5;
-  a = pow(a, 3.0);                                  // sharpen into distinct beams
+  a = pow(a, uSharp);                               // beam width (higher = thinner)
   float b = sin(x * 11.0 - t * 0.13) * 0.5 + 0.5;
-  b = pow(b, 2.0);
+  b = pow(b, max(1.0, uSharp * 0.6));
   return a * 0.8 + b * 0.5;
 }
 
@@ -65,6 +66,7 @@ export function SunRays({ color = "#cfeeff" }: { color?: string }) {
           uColor: { value: new THREE.Color(color) },
           uIntensity: { value: rays.intensity },
           uFreq: { value: rays.freq },
+          uSharp: { value: rays.sharp },
         },
         transparent: true,
         depthWrite: false,
@@ -82,6 +84,7 @@ export function SunRays({ color = "#cfeeff" }: { color?: string }) {
     material.uniforms.uTime.value += Math.min(dt, 0.05) * r.speed;
     material.uniforms.uIntensity.value = r.intensity;
     material.uniforms.uFreq.value = r.freq;
+    material.uniforms.uSharp.value = r.sharp;
   });
 
   return (
