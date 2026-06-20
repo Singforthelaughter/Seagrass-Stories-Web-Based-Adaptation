@@ -203,7 +203,7 @@ export function GameExperience() {
       {/* Subtle "through water" wobble over the whole 3D scene (not the UI).
           A single UV-warp pass — very cheap; multisampling kept low for tablets. */}
       <EffectComposer multisampling={2} enableNormalPass={false}>
-        <WaterDistortion amplitude={0.012} frequency={12} speed={0.9} />
+        <WaterDistortion amplitude={0.006} frequency={20} speed={0.8} />
       </EffectComposer>
     </Canvas>
   );
