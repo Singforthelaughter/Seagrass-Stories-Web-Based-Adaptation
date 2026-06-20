@@ -3,10 +3,12 @@
 import { useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import { EffectComposer } from "@react-three/postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { Seafloor } from "./scene/Seafloor";
 import { SeagrassField } from "./scene/Seagrass";
+import { WaterDistortion } from "./scene/WaterDistortion";
 import { Diver } from "./scene/Diver";
 import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
 import { useGame } from "@/lib/store";
@@ -197,6 +199,12 @@ export function GameExperience() {
       <SeagrassField progress={progress} />
       <DiverRig controls={controls} progress={progress} />
       <Controls controls={controls} />
+
+      {/* Subtle "through water" wobble over the whole 3D scene (not the UI).
+          A single UV-warp pass — very cheap; multisampling kept low for tablets. */}
+      <EffectComposer multisampling={2} enableNormalPass={false}>
+        <WaterDistortion amplitude={0.0025} frequency={9} speed={0.6} />
+      </EffectComposer>
     </Canvas>
   );
 }
