@@ -8,10 +8,13 @@ import { useState } from "react";
  * trimming the most expensive bits (post FX, shadows, caustic iterations, dpr)
  * while every capable device keeps the full look.
  *
- * Heuristic (client-only): a device is "low" only if it's a phone AND reports
- * few CPU cores or little memory. Desktops and tablets (incl. iPad, which UAs
- * as desktop on modern iOS) always get "full". A `?q=low|full` URL override is
- * supported for testing on any device.
+ * Heuristic (client-only): be conservative — only flag clearly weak phones, so
+ * capable devices are never downgraded. We key off `navigator.deviceMemory`
+ * (Chrome/Android; quantised, caps at 8 for flagships) and treat ≤ 2 GB on a
+ * mobile UA as low. We deliberately do NOT use `hardwareConcurrency`: iOS Safari
+ * under-reports core count, which would false-flag high-end iPhones. Safari also
+ * doesn't expose deviceMemory, so iPhones/iPads always get "full". A
+ * `?q=low|full` URL override is supported for testing on any device.
  */
 export type QualityTier = "low" | "full";
 
@@ -23,16 +26,13 @@ function detectTier(): QualityTier {
   if (q === "low" || q === "full") return q;
 
   const ua = navigator.userAgent;
-  const isPhone = /Android.+Mobile|iPhone|iPod|Windows Phone/i.test(ua);
-  if (!isPhone) return "full"; // desktop + tablets → full
-
-  const cores = navigator.hardwareConcurrency ?? 8;
-  // deviceMemory is Chrome-only (undefined on iOS Safari); treat unknown as ok.
+  const isMobile = /Android|iPhone|iPod|Mobile|Windows Phone/i.test(ua);
+  // deviceMemory: Chrome/Android only (undefined on iOS Safari → never low).
   const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
-  const lowMem = typeof mem === "number" && mem <= 4;
-  const lowCores = cores <= 4;
 
-  return lowMem || lowCores ? "low" : "full";
+  // Only a memory-constrained mobile device counts as low-end.
+  if (isMobile && typeof mem === "number" && mem <= 2) return "low";
+  return "full";
 }
 
 export function useQualityTier(): QualityTier {
