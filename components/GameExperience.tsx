@@ -170,11 +170,15 @@ function Controls({
   );
 }
 
+// Marine life returns once the meadow is at least this healthy.
+const FISH_HEALTH_THRESHOLD = 0.5;
+
 export function GameExperience() {
   const controls = useRef<OrbitControlsImpl | null>(null);
   const progress = useRef(0); // dive-in transition: 0 = personalise, 1 = playing
   const tier = useQualityTier();
   const low = tier === "low"; // weak phones: trim shadows, post FX, dpr, caustics
+  const healthy = useGame((s) => s.health) >= FISH_HEALTH_THRESHOLD;
 
   return (
     <Canvas
@@ -205,8 +209,8 @@ export function GameExperience() {
         <SeagrassField />
       </Seafloor>
       <DiverRig controls={controls} progress={progress} />
-      {/* Boids fish — shown in all phases for now (testing placeholder). */}
-      <FishSchool />
+      {/* Marine life appears only once the meadow is healthy enough. */}
+      {healthy && <FishSchool />}
       <Controls controls={controls} />
 
       {/* Subtle "through water" wobble over the whole 3D scene (not the UI).

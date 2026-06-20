@@ -31,6 +31,13 @@ interface GameState {
   move: [number, number];
   setMove: (x: number, y: number) => void;
   /**
+   * Ecosystem health, 0 (barren) → 1 (thriving). The meadow starts damaged, so
+   * it begins low. Marine life (e.g. the fish school) only appears once health
+   * crosses its threshold. Will be driven by the world sim (P2) later.
+   */
+  health: number;
+  setHealth: (h: number) => void;
+  /**
    * The diver's live world position, mutated in place each frame (no re-render).
    * Read by other systems (e.g. the fish school) that need to avoid the diver.
    */
@@ -54,4 +61,6 @@ export const useGame = create<GameState>((set) => ({
   move: [0, 0],
   setMove: (x, y) => set({ move: [x, y] }),
   diverPos: new THREE.Vector3(),
+  health: 0,
+  setHealth: (h) => set({ health: Math.max(0, Math.min(1, h)) }),
 }));
