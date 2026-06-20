@@ -50,7 +50,7 @@ export function Seafloor({ progress }: { progress: React.RefObject<number> }) {
 
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.uCausticTime = time.current;
-      shader.uniforms.uCausticScale = { value: 0.06 }; // feature size (smaller = bigger cells)
+      shader.uniforms.uCausticScale = { value: 0.13 }; // feature size (smaller = bigger cells)
       shader.uniforms.uCausticStrength = { value: 0.55 };
       shader.uniforms.uCausticColor = { value: new THREE.Color("#cdf3ff") };
 
@@ -87,7 +87,7 @@ export function Seafloor({ progress }: { progress: React.RefObject<number> }) {
     const e = smootherstep(progress.current);
     ref.current.visible = e > 0.001;
     ref.current.scale.setScalar(Math.max(e, 1e-4));
-    time.current.value = state.clock.elapsedTime * 0.6; // caustic drift speed
+    time.current.value = state.clock.elapsedTime * 0.3; // caustic drift speed
   });
 
   return (
