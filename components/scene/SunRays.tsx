@@ -90,7 +90,15 @@ function RayInstances({
         },
         transparent: true,
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        // Additive RGB, but DON'T touch the framebuffer alpha — otherwise the
+        // EffectComposer composites the corrupted edge alpha as dark fringes.
+        blending: THREE.CustomBlending,
+        blendEquation: THREE.AddEquation,
+        blendSrc: THREE.SrcAlphaFactor,
+        blendDst: THREE.OneFactor,
+        blendEquationAlpha: THREE.AddEquation,
+        blendSrcAlpha: THREE.ZeroFactor,
+        blendDstAlpha: THREE.OneFactor,
         side: THREE.DoubleSide,
         toneMapped: false,
         fog: false,
