@@ -105,6 +105,10 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
       return m
     })
     if (shadowMorph) shadowMorph.morphTargetInfluences![morphIndex] = 1 // hold open
+    // Drop buildClone's baked centring offset so the wrapper group fully owns
+    // the shadow's placement (matching how the basket root is positioned), and
+    // so it scales cleanly around the group origin.
+    shadowRoot.position.set(0, 0, 0)
 
     return { root, morphMesh, morphIndex, mats, shadowRoot, shadowMats }
   }, [gltf, tex])
