@@ -68,7 +68,7 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   const gltf = useGLTF(MODEL)
   const tex = useTexture(TEXTURE)
 
-  const { root, morphMesh, morphIndex, mats, shadowRoot, shadowMorph, shadowMats } = useMemo(() => {
+  const { root, morphMesh, morphIndex, mats, shadowRoot, shadowMats } = useMemo(() => {
     tex.colorSpace = THREE.SRGBColorSpace
     tex.flipY = false // matches the glTF UV convention (top-left origin)
     tex.needsUpdate = true
@@ -88,7 +88,9 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
     const dict = morphMesh?.morphTargetDictionary
     const morphIndex = dict?.["Open"] ?? 0
 
-    // --- shadow: identical duplicate, black tint, same transform/morph ---
+    // --- shadow: duplicate, black tint, kept fully OPEN; it grows by scaling
+    //     up (see useFrame) rather than morphing, like an expanding contact
+    //     shadow that spreads out as the basket opens. ---
     const shadowMats: THREE.MeshBasicMaterial[] = []
     const { root: shadowRoot, morphMesh: shadowMorph } = buildClone(gltf.scene, () => {
       const m = new THREE.MeshBasicMaterial({
@@ -102,11 +104,13 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
       shadowMats.push(m)
       return m
     })
+    if (shadowMorph) shadowMorph.morphTargetInfluences![morphIndex] = 1 // hold open
 
-    return { root, morphMesh, morphIndex, mats, shadowRoot, shadowMorph, shadowMats }
+    return { root, morphMesh, morphIndex, mats, shadowRoot, shadowMats }
   }, [gltf, tex])
 
   const outer = useRef<THREE.Group>(null!)
+  const shadowGroup = useRef<THREE.Group>(null!)
   const age = useRef(0)
 
   useFrame((_s, dt) => {
@@ -117,17 +121,21 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
     outer.current.position.y = THREE.MathUtils.lerp(DROP_HEIGHT, 0, drop)
     for (const m of mats) m.opacity = drop
     for (const m of shadowMats) m.opacity = drop * SHADOW_OPACITY
-    // 2) open via morph once landed — basket and shadow share the SAME value
+    // 2) open via morph once landed; the (already-open) shadow scales up from 0
+    //    on the same timeline, spreading out beneath the basket.
     const open = smootherstep(Math.min(Math.max((a - DROP_DUR - OPEN_DELAY) / OPEN_DUR, 0), 1))
     if (morphMesh) morphMesh.morphTargetInfluences![morphIndex] = open
-    if (shadowMorph) shadowMorph.morphTargetInfluences![morphIndex] = open
+    shadowGroup.current.scale.setScalar(open)
   })
 
   return (
     <group ref={outer} position={[pos[0], DROP_HEIGHT, pos[2]]}>
       <primitive object={root} position={[0, 0.02, 0]} />
-      {/* duplicate, dropped slightly below the basket — just a dark tint */}
-      <primitive object={shadowRoot} position={[-0.05, 0.005, -0.05]} />
+      {/* shadow: held fully open, scaled up from 0 around the basket's footprint
+          centre (seabed level) so it grows out as the basket opens. */}
+      <group ref={shadowGroup} position={[-0.025, 0.005, -0.025]} scale={0}>
+        <primitive object={shadowRoot} />
+      </group>
     </group>
   )
 }
