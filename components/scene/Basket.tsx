@@ -16,10 +16,11 @@ import { smootherstep } from "@/lib/ease";
 
 const MODEL = "/models/basket/basket.glb";
 const TEXTURE = "/models/basket/basket.png";
-const TARGET_SIZE = 1.6; // longest dimension in world units
+const TARGET_SIZE = 3.2; // longest dimension in world units
 
-const SCALE_DUR = 0.45; // grow-in time
-const OPEN_DELAY = 0.15; // pause closed after growing
+const DROP_HEIGHT = 4; // spawns this high, then drops to the seabed
+const DROP_DUR = 0.6; // fade-in + drop time
+const OPEN_DELAY = 0.15; // pause closed after landing
 const OPEN_DUR = 1.0; // morph open time
 
 function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
@@ -27,12 +28,14 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   const tex = useTexture(TEXTURE);
 
   // Clone per instance so each basket has its own morph influences + transform.
-  const { root, morphMesh, morphIndex } = useMemo(() => {
+  const { root, morphMesh, morphIndex, mats } = useMemo(() => {
     const root = gltf.scene.clone(true);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.flipY = false; // glTF UV convention
+    tex.needsUpdate = true; // re-upload after the flipY/colorSpace change
 
     let morphMesh: THREE.Mesh | null = null;
+    const mats: THREE.MeshStandardMaterial[] = [];
     root.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
@@ -40,8 +43,12 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
       mesh.receiveShadow = true;
       const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
       mat.map = tex;
+      mat.color.set("#ffffff"); // let the texture show its true colours
+      mat.transparent = true; // for the fade-in
+      mat.opacity = 0;
       mat.needsUpdate = true;
       mesh.material = mat;
+      mats.push(mat);
       if (mesh.morphTargetInfluences) morphMesh = mesh;
     });
 
@@ -58,7 +65,7 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
 
     const dict = (morphMesh as THREE.Mesh | null)?.morphTargetDictionary;
     const morphIndex = dict?.["Open"] ?? 0;
-    return { root, morphMesh: morphMesh as THREE.Mesh | null, morphIndex };
+    return { root, morphMesh: morphMesh as THREE.Mesh | null, morphIndex, mats };
   }, [gltf, tex]);
 
   const outer = useRef<THREE.Group>(null!);
@@ -67,11 +74,13 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   useFrame((_s, dt) => {
     age.current += Math.min(dt, 0.05);
     const a = age.current;
-    // 1) grow in (closed)
-    outer.current.scale.setScalar(smootherstep(Math.min(a / SCALE_DUR, 1)));
-    // 2) open via morph once grown
+    // 1) fade in while dropping down to the seabed
+    const drop = smootherstep(Math.min(a / DROP_DUR, 1));
+    outer.current.position.y = THREE.MathUtils.lerp(DROP_HEIGHT, 0, drop);
+    for (const m of mats) m.opacity = drop;
+    // 2) open via morph once landed
     if (morphMesh) {
-      const t = (a - SCALE_DUR - OPEN_DELAY) / OPEN_DUR;
+      const t = (a - DROP_DUR - OPEN_DELAY) / OPEN_DUR;
       morphMesh.morphTargetInfluences![morphIndex] = smootherstep(
         Math.min(Math.max(t, 0), 1),
       );
@@ -79,7 +88,7 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   });
 
   return (
-    <group ref={outer} position={pos} scale={0}>
+    <group ref={outer} position={[pos[0], DROP_HEIGHT, pos[2]]}>
       <primitive object={root} />
     </group>
   );
