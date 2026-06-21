@@ -1,6 +1,20 @@
 import { create } from "zustand";
 import * as THREE from "three";
-import { BASKET_BATCH, BASKET_COOLDOWN } from "@/lib/gameConfig";
+import {
+  BASKET_BATCH,
+  BASKET_COOLDOWN,
+  STARTING_SEAGRASS,
+  SEAGRASS_PER_BASKET,
+  SEAGRASS_FOR_FULL,
+} from "@/lib/gameConfig";
+
+/** Environment health (0–1) from the live seagrass count: the starting meadow
+ *  plus the grass grown around every currently-placed basket. */
+const healthFor = (numBaskets: number) =>
+  Math.max(
+    0,
+    Math.min(1, (STARTING_SEAGRASS + numBaskets * SEAGRASS_PER_BASKET) / SEAGRASS_FOR_FULL),
+  );
 
 export type Vec3 = [number, number, number];
 
@@ -113,13 +127,17 @@ export const useGame = create<GameState>((set) => ({
         baskets: [...s.baskets, { id: crypto.randomUUID(), pos }],
         basketsLeft: left,
         firstBasketPlaced: true,
+        health: healthFor(s.baskets.length + 1),
         // Spending the last basket of the batch starts the cooldown.
         basketCooldownUntil:
           left === 0 ? now + BASKET_COOLDOWN * 1000 : s.basketCooldownUntil,
       };
     }),
   removeBasket: (id) =>
-    set((s) => ({ baskets: s.baskets.filter((b) => b.id !== id) })),
+    set((s) => {
+      const baskets = s.baskets.filter((b) => b.id !== id);
+      return { baskets, health: healthFor(baskets.length) };
+    }),
   refillBaskets: () =>
     set((s) => {
       if (s.basketCooldownUntil && Date.now() >= s.basketCooldownUntil) {
@@ -128,7 +146,7 @@ export const useGame = create<GameState>((set) => ({
       return s;
     }),
   diverPos: new THREE.Vector3(),
-  health: 0,
+  health: healthFor(0), // starting (damaged) meadow
   setHealth: (h) => set({ health: Math.max(0, Math.min(1, h)) }),
   rays: {
     count: 120,

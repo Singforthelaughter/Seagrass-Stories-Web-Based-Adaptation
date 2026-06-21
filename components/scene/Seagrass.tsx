@@ -7,7 +7,12 @@ import * as THREE from "three"
 import { smootherstep } from "@/lib/ease"
 import { useGame } from "@/lib/store"
 import type { PlacedBasket } from "@/lib/store"
-import { BASKET_LIFETIME, FADE_OUT_DUR } from "@/lib/gameConfig"
+import {
+  BASKET_LIFETIME,
+  FADE_OUT_DUR,
+  STARTING_SEAGRASS,
+  SEAGRASS_PER_BASKET,
+} from "@/lib/gameConfig"
 
 /**
  * The seagrass meadow. Two authored variants (SM_SeaGrass_01 / _02) are mixed
@@ -25,10 +30,10 @@ const TARGET_HEIGHT = 1.6 // world units, tallest blade ~ this
 
 // --- starting meadow ---
 const FIELD_BOUND = 88 // spread (just inside the diver's SWIM_BOUND of 90)
-const START_COUNT = 5 // sparse: the meadow has been damaged
+const START_COUNT = STARTING_SEAGRASS // sparse: the meadow has been damaged
 
 // --- growth around baskets ---
-const PER_BASKET = 5 // sprouts grown per anchor basket
+const PER_BASKET = SEAGRASS_PER_BASKET // sprouts grown per anchor basket
 const CLUSTER_MIN = 0.25 // ring around the basket the sprouts grow in
 const CLUSTER_MAX = 1.25
 const GROW_DUR = 1.6 // seconds for one sprout to grow to full
