@@ -38,7 +38,7 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   const { root, morphMesh, morphIndex, mats, shadowRoot, shadowMats } = useMemo(() => {
     const root = gltf.scene.clone(true);
     tex.colorSpace = THREE.SRGBColorSpace;
-    tex.flipY = false; // glTF UV convention
+    tex.flipY = true; // Blender-exported PNG (sampling was hitting empty atlas)
     tex.needsUpdate = true; // re-upload after the flipY/colorSpace change
 
     let morphMesh: THREE.Mesh | null = null;
@@ -127,19 +127,14 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   });
 
   return (
-    <>
-      <group ref={outer} position={[pos[0], DROP_HEIGHT, pos[2]]}>
-        <primitive object={root} />
-      </group>
-      {/* fake shadow: flattened open-basket clone, offset so some of it shows */}
-      <group
-        ref={shadow}
-        position={[pos[0], SHADOW_Y, pos[2]]}
-        scale={0}
-      >
+    <group ref={outer} position={[pos[0], DROP_HEIGHT, pos[2]]}>
+      <primitive object={root} />
+      {/* shadow nested in the basket group → exact same x/z as the basket.
+          Flattened (squashed Y) so it lies flat as a fake contact shadow. */}
+      <group ref={shadow} position={[0, SHADOW_Y, 0]} scale={0}>
         <primitive object={shadowRoot} />
       </group>
-    </>
+    </group>
   );
 }
 
