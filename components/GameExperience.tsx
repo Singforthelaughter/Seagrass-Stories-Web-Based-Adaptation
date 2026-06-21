@@ -7,7 +7,7 @@ import { EffectComposer } from "@react-three/postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { Seafloor } from "./scene/Seafloor";
-import { SeagrassField } from "./scene/Seagrass";
+import { SeagrassField, BasketSeagrass } from "./scene/Seagrass";
 import { Baskets } from "./scene/Basket";
 import { FishSchool } from "./scene/FishSchool";
 import { SunRays } from "./scene/SunRays";
@@ -220,6 +220,8 @@ export function GameExperience() {
           fallback (it would flash on the first placement otherwise). */}
       <Suspense fallback={null}>
         <Baskets />
+        {/* New growth sprouts in around each placed basket over time. */}
+        <BasketSeagrass />
       </Suspense>
       {/* Marine life appears only once the meadow is healthy enough. */}
       {healthy && <FishSchool />}
