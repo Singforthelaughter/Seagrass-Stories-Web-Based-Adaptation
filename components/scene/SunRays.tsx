@@ -21,12 +21,14 @@ const vertexShader = /* glsl */ `
 attribute float aPhase;
 varying float vFacing;
 varying float vFade;
+varying float vWorldY;
 varying vec2 vUv;
 uniform float uTime;
 uniform float uFadeSpeed;
 void main() {
   vUv = uv;
   vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+  vWorldY = (modelMatrix * instanceMatrix * vec4(position, 1.0)).y;
   // normal through the instance + view transform (radial normals on a thin
   // cylinder; uniform-enough scale that this reads correctly for the glow)
   vec3 n = normalize(normalMatrix * (mat3(instanceMatrix) * normal));
@@ -41,6 +43,7 @@ void main() {
 const fragmentShader = /* glsl */ `
 varying float vFacing;
 varying float vFade;
+varying float vWorldY;
 varying vec2 vUv;
 uniform vec3 uColor;
 uniform float uIntensity;
@@ -50,6 +53,8 @@ void main() {
   float a = pow(vFacing, uPower);
   // fade the lower end so shafts dissolve as they descend
   a *= smoothstep(0.0, 0.3, vUv.y);
+  // dissolve before reaching the seabed (y=0) so there's no hard depth-cut line
+  a *= smoothstep(0.0, 6.0, vWorldY);
   a *= uIntensity * vFade;
   gl_FragColor = vec4(uColor * a, a);
 }
@@ -86,9 +91,7 @@ function RayInstances({
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
-        // FrontSide only: the camera-facing half is all the glow needs, and it
-        // avoids the dark silhouette seam where front/back faces meet.
-        side: THREE.FrontSide,
+        side: THREE.DoubleSide,
         toneMapped: false,
         fog: false,
       }),
