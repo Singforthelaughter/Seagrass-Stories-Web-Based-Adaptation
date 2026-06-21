@@ -28,8 +28,8 @@ const OPEN_DUR = 1.0; // morph open time
 
 const SHADOW_OPACITY = 0.4; // darkness of the fake shadow
 const SHADOW_FLAT = 0.05; // vertical squash → lies flat on the sand
-const SHADOW_OFFSET_X = -0.8; // nudge so some shadow peeks out beside the basket
-const SHADOW_OFFSET_Z = -0.6;
+const SHADOW_OFFSET_X = 0.05; // nudge so some shadow peeks out beside the basket
+const SHADOW_OFFSET_Z = 0.05;
 
 function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   const gltf = useGLTF(MODEL);
@@ -84,7 +84,8 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
       mesh.castShadow = false;
       mesh.receiveShadow = false;
       const smat = new THREE.MeshBasicMaterial({
-        color: "#000000",
+        map: tex, // use the texture's alpha so the weave holes show through
+        color: "#000000", // black × albedo = black, alpha from the map
         transparent: true,
         opacity: 0,
         depthWrite: false,
