@@ -17,6 +17,12 @@ import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
 import { useGame } from "@/lib/store";
 import { useQualityTier } from "@/lib/useQualityTier";
 import { smootherstep as smooth } from "@/lib/ease";
+import {
+  FISH_SCHOOL_HEALTH,
+  FISH_SCHOOL_2_HEALTH,
+  TURTLE_HEALTH,
+  DUGONG_HEALTH,
+} from "@/lib/gameConfig";
 
 const WATER_COLOR = "#0b3547";
 const SWIM_HEIGHT = 1.3; // diver height above the seafloor while playing
@@ -172,15 +178,13 @@ function Controls({
   );
 }
 
-// Marine life returns once the meadow is at least this healthy.
-const FISH_HEALTH_THRESHOLD = 0.5;
-
 export function GameExperience() {
   const controls = useRef<OrbitControlsImpl | null>(null);
   const progress = useRef(0); // dive-in transition: 0 = personalise, 1 = playing
   const tier = useQualityTier();
   const low = tier === "low"; // weak phones: trim shadows, post FX, dpr, caustics
-  const healthy = useGame((s) => s.health) >= FISH_HEALTH_THRESHOLD;
+  // Marine life returns as the meadow recovers, each at its own health threshold.
+  const health = useGame((s) => s.health);
 
   return (
     <Canvas
@@ -223,8 +227,12 @@ export function GameExperience() {
         {/* New growth sprouts in around each placed basket over time. */}
         <BasketSeagrass />
       </Suspense>
-      {/* Marine life appears only once the meadow is healthy enough. */}
-      {healthy && <FishSchool />}
+      {/* Marine life returns as the meadow recovers, each at its own threshold. */}
+      {health >= FISH_SCHOOL_HEALTH && <FishSchool mode="ahead" />}
+      {health >= FISH_SCHOOL_2_HEALTH && <FishSchool mode="player" color="#7fd4e6" />}
+      {/* Turtle & dugong return at higher health — models to be added later. */}
+      {health >= TURTLE_HEALTH && null /* <Turtle /> */}
+      {health >= DUGONG_HEALTH && null /* <Dugong /> */}
       <Controls controls={controls} />
 
       {/* Subtle "through water" wobble (full tier only — skipped on low-end). */}

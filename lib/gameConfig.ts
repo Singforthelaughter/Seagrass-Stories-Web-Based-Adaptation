@@ -25,3 +25,18 @@ export const SEAGRASS_PER_BASKET = 5;
 
 /** Total live seagrass needed for the environment to reach 100% health. */
 export const SEAGRASS_FOR_FULL = 40;
+
+// --- marine life return thresholds (environment health, 0–1) ---
+// Each creature reappears once health crosses its threshold.
+
+/** First fish school — drifts to stay ahead of the camera. */
+export const FISH_SCHOOL_HEALTH = 0.5;
+
+/** Second fish school — roams the surroundings, centred on the player. */
+export const FISH_SCHOOL_2_HEALTH = 0.7;
+
+/** Turtle (model TBD). */
+export const TURTLE_HEALTH = 0.85;
+
+/** Dugong (model TBD). */
+export const DUGONG_HEALTH = 1.0;

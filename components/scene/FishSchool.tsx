@@ -46,9 +46,6 @@ const FLOOR_MIN = 0.5; // hard safety floor as a last resort
 const FISH_LENGTH = 0.6;
 const FISH_RADIUS = 0.16;
 
-// Default school centre — low, just above the seafloor.
-const DEFAULT_CENTER: [number, number, number] = [0, 2.3, 0];
-
 // Camera-following: keep the school roughly this far ahead of the camera, at a
 // fixed near-floor height, but only ease the centre when the ideal point drifts
 // outside a deadzone — so the follow stays subtle, not glued to the view.
@@ -56,6 +53,8 @@ const AHEAD_DIST = 15; // units in front of the camera
 const SCHOOL_Y = 2.2; // fixed school height above the seafloor
 const FOLLOW_DEADZONE = 5; // don't reposition until the target strays this far
 const FOLLOW_BASE = 0.4; // easing base (smaller = faster catch-up); ~1.4s settle
+
+const FADE_IN_DUR = 1.6; // seconds for the school to fade in when it first appears
 
 const UP_Y = new THREE.Vector3(0, 1, 0); // cone tip axis → aligned to velocity
 const _fwd = new THREE.Vector3();
@@ -75,19 +74,41 @@ const cellKey = (x: number, y: number, z: number) =>
   `${Math.floor(x / PERCEPTION)},${Math.floor(y / PERCEPTION)},${Math.floor(z / PERCEPTION)}`;
 
 export function FishSchool({
-  center = DEFAULT_CENTER,
-  follow = true,
+  mode = "ahead",
+  color = "#ff8a4c",
 }: {
-  center?: [number, number, number];
-  /** Slowly drift the school to stay ahead of the camera (subtly). */
-  follow?: boolean;
+  /**
+   * "ahead"  — the school drifts to stay ahead of the camera (subtly).
+   * "player" — the school roams the surroundings, centred on the player; it is
+   *            NOT pulled toward the view.
+   */
+  mode?: "ahead" | "player";
+  color?: string;
 }) {
   const tier = useQualityTier();
   const count = tier === "low" ? 40 : 120;
   const mesh = useRef<THREE.InstancedMesh>(null!);
+  const mat = useRef<THREE.MeshStandardMaterial>(null!);
+  const age = useRef(0); // for the fade-in
   const { camera } = useThree();
 
-  const centerVec = useMemo(() => new THREE.Vector3(...center), [center]);
+  // Initial centre: a distance AHEAD of the camera (so the school appears out in
+  // front, not on top of the player), or on the player for the roaming school.
+  const centerVec = useMemo(() => {
+    const c = new THREE.Vector3();
+    if (mode === "player") {
+      c.copy(useGame.getState().diverPos);
+    } else {
+      camera.getWorldDirection(_fwd);
+      _fwd.y = 0;
+      if (_fwd.lengthSq() < 1e-4) _fwd.set(0, 0, -1);
+      else _fwd.normalize();
+      c.copy(camera.position).addScaledVector(_fwd, AHEAD_DIST);
+    }
+    c.y = SCHOOL_Y;
+    return c;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Simulation state, created once.
   const sim = useMemo(() => {
@@ -123,11 +144,15 @@ export function FishSchool({
     const diverPos = useGame.getState().diverPos; // live, mutated in place
     const camPos = camera.position;
 
-    // 0) ease the school centre toward a point ahead of the camera (subtle).
-    //    Flatten the look direction to keep the target at a near-floor height,
-    //    and only move once it drifts past the deadzone, so small camera moves
-    //    don't visibly tug the school.
-    if (follow) {
+    // 0a) fade the whole school in when it first appears
+    age.current += dt;
+    if (mat.current) mat.current.opacity = Math.min(age.current / FADE_IN_DUR, 1);
+
+    // 0b) move the school centre.
+    if (mode === "ahead") {
+      // ease toward a point ahead of the camera (subtle). Flatten the look
+      // direction to keep the target near-floor, and only move once it drifts
+      // past the deadzone so small camera moves don't visibly tug the school.
       camera.getWorldDirection(_fwd);
       _fwd.y = 0;
       if (_fwd.lengthSq() < 1e-4) _fwd.set(0, 0, -1);
@@ -137,6 +162,12 @@ export function FishSchool({
       if (centerVec.distanceTo(_target) > FOLLOW_DEADZONE) {
         centerVec.lerp(_target, 1 - Math.pow(FOLLOW_BASE, dt));
       }
+    } else {
+      // roam around the player: keep the centre on the diver (they flee the
+      // diver, so the shoal forms a loose ring around them rather than crowding).
+      _target.copy(diverPos);
+      _target.y = SCHOOL_Y;
+      centerVec.lerp(_target, 1 - Math.pow(FOLLOW_BASE, dt));
     }
 
     // 1) rebuild the spatial hash grid
@@ -259,7 +290,14 @@ export function FishSchool({
       castShadow
     >
       <coneGeometry args={[FISH_RADIUS, FISH_LENGTH, 7]} />
-      <meshStandardMaterial color="#ff8a4c" roughness={0.6} metalness={0.1} />
+      <meshStandardMaterial
+        ref={mat}
+        color={color}
+        roughness={0.6}
+        metalness={0.1}
+        transparent
+        opacity={0}
+      />
     </instancedMesh>
   );
 }
