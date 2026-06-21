@@ -69,7 +69,7 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
     root.position.set(-center.x, -box.min.y, -center.z);
     box.setFromObject(root);
     box.getSize(size);
-    const shadowSize = Math.max(size.x, size.z) * 0.95;
+    const shadowSize = Math.max(size.x, size.z) * 0.6; // tight to the basket base
 
     // Fake contact shadow: a flat plane below using the basket texture's alpha,
     // tinted black (unlit), so the basket reads as grounded without real shadows.
@@ -138,3 +138,4 @@ export function Baskets() {
 }
 
 useGLTF.preload(MODEL);
+useTexture.preload(TEXTURE);

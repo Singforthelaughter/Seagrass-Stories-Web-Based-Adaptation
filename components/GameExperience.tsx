@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { Suspense, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { EffectComposer } from "@react-three/postprocessing";
@@ -215,8 +215,12 @@ export function GameExperience() {
         <SeagrassField />
       </Seafloor>
       <DiverRig controls={controls} progress={progress} />
-      {/* Anchor baskets the player taps onto the seafloor. */}
-      <Baskets />
+      {/* Anchor baskets the player taps onto the seafloor. Wrapped so loading
+          the basket assets never bubbles up to the page-level "Descending"
+          fallback (it would flash on the first placement otherwise). */}
+      <Suspense fallback={null}>
+        <Baskets />
+      </Suspense>
       {/* Marine life appears only once the meadow is healthy enough. */}
       {healthy && <FishSchool />}
       <Controls controls={controls} />
