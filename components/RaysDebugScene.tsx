@@ -2,7 +2,9 @@
 
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import { EffectComposer } from "@react-three/postprocessing";
 import { SunRays } from "./scene/SunRays";
+import { WaterDistortion } from "./scene/WaterDistortion";
 import { useGame } from "@/lib/store";
 
 /**
@@ -21,6 +23,12 @@ export function RaysDebugScene() {
       <gridHelper args={[220, 22, "#2a5a6a", "#16313c"]} position={[0, 0, 0]} />
       <SunRays />
       <OrbitControls target={[0, centerY * 0.6, 0]} enablePan minDistance={5} maxDistance={300} />
+
+      {/* Diagnostic: same post-processing as /play, to see if the EffectComposer
+          is what introduces the dark edge lines on the rays. */}
+      <EffectComposer multisampling={2} enableNormalPass={false}>
+        <WaterDistortion amplitude={0.0035} frequency={16} speed={0.8} />
+      </EffectComposer>
     </Canvas>
   );
 }
