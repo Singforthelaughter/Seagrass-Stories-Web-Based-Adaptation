@@ -166,7 +166,11 @@ export default function PlayPage() {
         </div>
 
         {/* Design the wetsuit with AI */}
-        <div className="pointer-events-auto w-full max-w-sm">
+        <div
+          className={`w-full max-w-sm ${
+            phase === "personalise" ? "pointer-events-auto" : "pointer-events-none"
+          }`}
+        >
           <label className="mb-1.5 block text-sm font-semibold text-white">
             🎨 Design your wetsuit
           </label>
@@ -211,7 +215,9 @@ export default function PlayPage() {
         {/* CTA */}
         <button
           onClick={diveIn}
-          className="pointer-events-auto mt-1 w-full max-w-sm rounded-full bg-gradient-to-r from-[#19c6c6] to-[#2e7dd1] py-4 text-lg font-bold text-[#04121f] shadow-lg shadow-cyan-900/40 transition active:scale-[0.98]"
+          className={`mt-1 w-full max-w-sm rounded-full bg-gradient-to-r from-[#19c6c6] to-[#2e7dd1] py-4 text-lg font-bold text-[#04121f] shadow-lg shadow-cyan-900/40 transition active:scale-[0.98] ${
+            phase === "personalise" ? "pointer-events-auto" : "pointer-events-none"
+          }`}
         >
           Dive in →
         </button>

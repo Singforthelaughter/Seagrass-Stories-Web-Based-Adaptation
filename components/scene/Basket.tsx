@@ -22,7 +22,6 @@ const DROP_HEIGHT = 4; // spawns this high, then drops to the seabed
 const DROP_DUR = 0.6; // fade-in + drop time
 const OPEN_DELAY = 0.15; // pause closed after landing
 const OPEN_DUR = 1.0; // morph open time
-const SINK = 0.25; // settle slightly into the sand so it doesn't float
 const SHADOW_OPACITY = 0.4; // strength of the fake contact shadow
 
 function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
@@ -88,23 +87,23 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   }, [gltf, tex]);
 
   const outer = useRef<THREE.Group>(null!);
+  const shadow = useRef<THREE.Mesh>(null!);
   const age = useRef(0);
 
   useFrame((_s, dt) => {
     age.current += Math.min(dt, 0.05);
     const a = age.current;
-    // 1) fade in while dropping down to (slightly into) the seabed
+    // 1) fade in while dropping down to seabed level (y = 0, flush with floor)
     const drop = smootherstep(Math.min(a / DROP_DUR, 1));
-    outer.current.position.y = THREE.MathUtils.lerp(DROP_HEIGHT, -SINK, drop);
+    outer.current.position.y = THREE.MathUtils.lerp(DROP_HEIGHT, 0, drop);
     for (const m of mats) m.opacity = drop;
-    shadowMat.opacity = drop * SHADOW_OPACITY;
-    // 2) open via morph once landed
-    if (morphMesh) {
-      const t = (a - DROP_DUR - OPEN_DELAY) / OPEN_DUR;
-      morphMesh.morphTargetInfluences![morphIndex] = smootherstep(
-        Math.min(Math.max(t, 0), 1),
-      );
-    }
+    // 2) open via morph once landed; the shadow scales up from 0 as it opens
+    const open = smootherstep(
+      Math.min(Math.max((a - DROP_DUR - OPEN_DELAY) / OPEN_DUR, 0), 1),
+    );
+    if (morphMesh) morphMesh.morphTargetInfluences![morphIndex] = open;
+    shadow.current.scale.setScalar(open);
+    shadowMat.opacity = open * SHADOW_OPACITY;
   });
 
   return (
@@ -112,11 +111,13 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
       <group ref={outer} position={[pos[0], DROP_HEIGHT, pos[2]]}>
         <primitive object={root} />
       </group>
-      {/* fake contact shadow on the sand */}
+      {/* fake contact shadow on the sand — grows in as the basket opens */}
       <mesh
+        ref={shadow}
         position={[pos[0], 0.03, pos[2]]}
         rotation={[-Math.PI / 2, 0, 0]}
         material={shadowMat}
+        scale={0}
       >
         <planeGeometry args={[shadowSize, shadowSize]} />
       </mesh>
