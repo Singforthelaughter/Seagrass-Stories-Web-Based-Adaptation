@@ -7,6 +7,7 @@ import * as THREE from "three"
 import { smootherstep } from "@/lib/ease"
 import { useGame } from "@/lib/store"
 import type { PlacedBasket } from "@/lib/store"
+import { BASKET_LIFETIME, FADE_OUT_DUR } from "@/lib/gameConfig"
 
 /**
  * The seagrass meadow. Two authored variants (SM_SeaGrass_01 / _02) are mixed
@@ -87,18 +88,46 @@ export function SeagrassField() {
   )
 }
 
-/** A single sprout that scales up from 0 → full over GROW_DUR after `delay`. */
+/** A single sprout that scales up from 0 → full over GROW_DUR after `delay`,
+ *  then fades out with its basket at the end of the shared lifetime.
+ *
+ *  Unlike <Clone>, this owns a deep clone with UNIQUE (transparent) materials so
+ *  its opacity can be faded without affecting every other seagrass instance. */
 function Sprout({ object, position, rotY, scale, delay }: { object: THREE.Object3D; position: [number, number, number]; rotY: number; scale: number; delay: number }) {
   const ref = useRef<THREE.Group>(null!)
   const age = useRef(0)
+
+  const { obj, mats } = useMemo(() => {
+    const obj = object.clone(true)
+    const mats: THREE.Material[] = []
+    obj.traverse((o) => {
+      const mesh = o as THREE.Mesh
+      if (!mesh.isMesh) return
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+      const src = mesh.material
+      const cloned = Array.isArray(src) ? src.map((m) => m.clone()) : src.clone()
+      ;(Array.isArray(cloned) ? cloned : [cloned]).forEach((m) => {
+        m.transparent = true
+        mats.push(m)
+      })
+      mesh.material = cloned
+    })
+    return { obj, mats }
+  }, [object])
+
   useFrame((_s, dt) => {
     age.current += Math.min(dt, 0.05)
-    const t = THREE.MathUtils.clamp((age.current - delay) / GROW_DUR, 0, 1)
-    ref.current.scale.setScalar(smootherstep(t) * scale)
+    const a = age.current
+    const grow = smootherstep(THREE.MathUtils.clamp((a - delay) / GROW_DUR, 0, 1))
+    ref.current.scale.setScalar(grow * scale)
+    // fade out on the same lifetime as the basket it belongs to
+    const vis = 1 - THREE.MathUtils.clamp((a - BASKET_LIFETIME) / FADE_OUT_DUR, 0, 1)
+    for (const m of mats) m.opacity = vis
   })
   return (
     <group ref={ref} position={position} rotation={[0, rotY, 0]} scale={0}>
-      <Clone object={object} castShadow receiveShadow />
+      <primitive object={obj} />
     </group>
   )
 }

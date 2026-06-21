@@ -7,6 +7,7 @@ import * as THREE from "three"
 import { useGame } from "@/lib/store"
 import type { PlacedBasket } from "@/lib/store"
 import { smootherstep } from "@/lib/ease"
+import { BASKET_LIFETIME, FADE_OUT_DUR } from "@/lib/gameConfig"
 
 /**
  * An anchor basket placed on the seafloor. It fades in and drops to the seabed
@@ -64,7 +65,7 @@ function buildClone(source: THREE.Object3D, makeMaterial: () => THREE.Material) 
   return { root, morphMesh: morphMesh as THREE.Mesh | null }
 }
 
-function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
+function Basket({ id, pos }: { id: string; pos: PlacedBasket["pos"] }) {
   const gltf = useGLTF(MODEL)
   const tex = useTexture(TEXTURE)
 
@@ -116,20 +117,29 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   const outer = useRef<THREE.Group>(null!)
   const shadowGroup = useRef<THREE.Group>(null!)
   const age = useRef(0)
+  const removed = useRef(false)
 
   useFrame((_s, dt) => {
     age.current += Math.min(dt, 0.05)
     const a = age.current
+    // 3) at the end of its lifetime the basket fades out, then is removed.
+    const fade = THREE.MathUtils.clamp((a - BASKET_LIFETIME) / FADE_OUT_DUR, 0, 1)
+    const vis = 1 - fade // 1 = fully visible → 0 = gone
     // 1) fade in while dropping to seabed level (y = 0)
     const drop = smootherstep(Math.min(a / DROP_DUR, 1))
     outer.current.position.y = THREE.MathUtils.lerp(DROP_HEIGHT, 0, drop)
-    for (const m of mats) m.opacity = drop
-    for (const m of shadowMats) m.opacity = drop * SHADOW_OPACITY
+    for (const m of mats) m.opacity = drop * vis
+    for (const m of shadowMats) m.opacity = drop * SHADOW_OPACITY * vis
     // 2) open via morph once landed; the (already-open) shadow scales up from 0
     //    on the same timeline, spreading out beneath the basket.
     const open = smootherstep(Math.min(Math.max((a - DROP_DUR - OPEN_DELAY) / OPEN_DUR, 0), 1))
     if (morphMesh) morphMesh.morphTargetInfluences![morphIndex] = open
     shadowGroup.current.scale.setScalar(open)
+    // remove from the scene once fully faded (fires once)
+    if (fade >= 1 && !removed.current) {
+      removed.current = true
+      useGame.getState().removeBasket(id)
+    }
   })
 
   return (
@@ -150,7 +160,7 @@ export function Baskets() {
   return (
     <>
       {baskets.map((b) => (
-        <Basket key={b.id} pos={b.pos} />
+        <Basket key={b.id} id={b.id} pos={b.pos} />
       ))}
     </>
   )

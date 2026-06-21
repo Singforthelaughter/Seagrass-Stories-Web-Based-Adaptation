@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import * as THREE from "three";
+import { BASKET_BATCH, BASKET_COOLDOWN } from "@/lib/gameConfig";
 
 export type Vec3 = [number, number, number];
 
@@ -52,7 +53,18 @@ interface GameState {
   setMove: (x: number, y: number) => void;
   /** Anchor baskets the player has placed on the seafloor. */
   baskets: PlacedBasket[];
-  addBasket: (pos: Vec3) => void;
+  /** Baskets still placeable in the current batch (refills after a cooldown). */
+  basketsLeft: number;
+  /** Timestamp (ms) the placement cooldown ends; 0 = not cooling down. */
+  basketCooldownUntil: number;
+  /** Whether the player has placed their first basket (hides the tap hint). */
+  firstBasketPlaced: boolean;
+  /** Try to place a basket; no-op if the batch is empty or cooling down. */
+  placeBasket: (pos: Vec3) => void;
+  /** Remove a basket once it has lived out its lifetime + fade. */
+  removeBasket: (id: string) => void;
+  /** Refill the batch if the cooldown has elapsed (called by the HUD ticker). */
+  refillBaskets: () => void;
   /**
    * Ecosystem health, 0 (barren) → 1 (thriving). The meadow starts damaged, so
    * it begins low. Marine life (e.g. the fish school) only appears once health
@@ -87,8 +99,34 @@ export const useGame = create<GameState>((set) => ({
   move: [0, 0],
   setMove: (x, y) => set({ move: [x, y] }),
   baskets: [],
-  addBasket: (pos) =>
-    set((s) => ({ baskets: [...s.baskets, { id: crypto.randomUUID(), pos }] })),
+  basketsLeft: BASKET_BATCH,
+  basketCooldownUntil: 0,
+  firstBasketPlaced: false,
+  placeBasket: (pos) =>
+    set((s) => {
+      const now = Date.now();
+      // Reject while cooling down or once the batch is spent.
+      if (s.basketCooldownUntil && now < s.basketCooldownUntil) return s;
+      if (s.basketsLeft <= 0) return s;
+      const left = s.basketsLeft - 1;
+      return {
+        baskets: [...s.baskets, { id: crypto.randomUUID(), pos }],
+        basketsLeft: left,
+        firstBasketPlaced: true,
+        // Spending the last basket of the batch starts the cooldown.
+        basketCooldownUntil:
+          left === 0 ? now + BASKET_COOLDOWN * 1000 : s.basketCooldownUntil,
+      };
+    }),
+  removeBasket: (id) =>
+    set((s) => ({ baskets: s.baskets.filter((b) => b.id !== id) })),
+  refillBaskets: () =>
+    set((s) => {
+      if (s.basketCooldownUntil && Date.now() >= s.basketCooldownUntil) {
+        return { basketsLeft: BASKET_BATCH, basketCooldownUntil: 0 };
+      }
+      return s;
+    }),
   diverPos: new THREE.Vector3(),
   health: 0,
   setHealth: (h) => set({ health: Math.max(0, Math.min(1, h)) }),

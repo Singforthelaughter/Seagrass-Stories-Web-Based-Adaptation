@@ -119,10 +119,11 @@ export function Seafloor({
 
   // Tap the seabed (while playing) to drop an anchor basket at that spot.
   const onPlace = (e: ThreeEvent<PointerEvent>) => {
-    const { phase, addBasket } = useGame.getState();
+    const { phase, placeBasket } = useGame.getState();
     if (phase !== "playing") return;
     e.stopPropagation();
-    addBasket([e.point.x, 0, e.point.z]);
+    // No-op if the batch is spent / cooling down (handled inside placeBasket).
+    placeBasket([e.point.x, 0, e.point.z]);
   };
 
   return (

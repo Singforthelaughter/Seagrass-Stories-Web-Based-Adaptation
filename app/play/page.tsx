@@ -7,6 +7,7 @@ import { useGame } from "@/lib/store";
 import { ensureSession, getAccessToken, loadTextureHistory } from "@/lib/player";
 import { Joystick } from "@/components/ui/Joystick";
 import { RayTuner } from "@/components/ui/RayTuner";
+import { BasketHUD } from "@/components/ui/BasketHUD";
 
 // Three.js touches the DOM/WebGL — load the canvas client-side only.
 const GameExperience = dynamic(
@@ -24,6 +25,7 @@ const GameExperience = dynamic(
 export default function PlayPage() {
   const phase = useGame((s) => s.phase);
   const setPhase = useGame((s) => s.setPhase);
+  const firstBasketPlaced = useGame((s) => s.firstBasketPlaced);
   const setSuitTextureUrl = useGame((s) => s.setSuitTextureUrl);
   const suitTextureUrl = useGame((s) => s.suitTextureUrl);
   const addSuitTexture = useGame((s) => s.addSuitTexture);
@@ -225,6 +227,21 @@ export default function PlayPage() {
 
       {/* Gameplay controls */}
       {phase === "playing" && <Joystick />}
+
+      {/* Basket batch / cooldown HUD (corner) */}
+      <BasketHUD />
+
+      {/* First-time hint: tap the seafloor to plant. Fades out after the first
+          basket is placed. */}
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-24 z-10 flex justify-center transition-opacity duration-500 ${
+          phase === "playing" && !firstBasketPlaced ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <span className="rounded-full bg-black/35 px-4 py-2 text-sm font-medium text-[#cfeaf2] backdrop-blur">
+          👆 Tap the seafloor to plant seagrass
+        </span>
+      </div>
 
       {/* Temporary sun-ray tuning sliders (only with ?tune in the URL) */}
       <RayTuner />
