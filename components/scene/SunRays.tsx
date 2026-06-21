@@ -86,7 +86,9 @@ function RayInstances({
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide,
+        // FrontSide only: the camera-facing half is all the glow needs, and it
+        // avoids the dark silhouette seam where front/back faces meet.
+        side: THREE.FrontSide,
         toneMapped: false,
         fog: false,
       }),
@@ -129,8 +131,9 @@ function RayInstances({
   return (
     <group ref={group}>
       <instancedMesh ref={mesh} args={[undefined, undefined, count]} material={material} frustumCulled={false}>
-        {/* radius 1, height 1, open-ended; scaled per-instance */}
-        <cylinderGeometry args={[1, 1, 1, 10, 1, true]} />
+        {/* radius 1, height 1, open-ended; scaled per-instance. Higher segment
+            count keeps the silhouette smooth (no faceted edge lines). */}
+        <cylinderGeometry args={[1, 1, 1, 24, 1, true]} />
       </instancedMesh>
     </group>
   );

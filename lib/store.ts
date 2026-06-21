@@ -92,8 +92,8 @@ export const useGame = create<GameState>((set) => ({
     tilt: 8,
     spread: 34,
     centerY: 12,
-    speed: 0.05,
-    fadeSpeed: 0.5,
+    speed: 0.2,
+    fadeSpeed: 0.9,
   },
   setRays: (p) => set((s) => ({ rays: { ...s.rays, ...p } })),
 }));
