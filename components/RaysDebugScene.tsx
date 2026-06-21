@@ -26,7 +26,7 @@ export function RaysDebugScene() {
 
       {/* Diagnostic: same post-processing as /play, to see if the EffectComposer
           is what introduces the dark edge lines on the rays. */}
-      <EffectComposer multisampling={2} enableNormalPass={false}>
+      <EffectComposer multisampling={0} enableNormalPass={false}>
         <WaterDistortion amplitude={0.0035} frequency={16} speed={0.8} />
       </EffectComposer>
     </Canvas>

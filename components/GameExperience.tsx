@@ -220,7 +220,7 @@ export function GameExperience() {
 
       {/* Subtle "through water" wobble (full tier only — skipped on low-end). */}
       {!low && (
-        <EffectComposer multisampling={2} enableNormalPass={false}>
+        <EffectComposer multisampling={0} enableNormalPass={false}>
           <WaterDistortion amplitude={0.0035} frequency={16} speed={0.8} />
         </EffectComposer>
       )}
