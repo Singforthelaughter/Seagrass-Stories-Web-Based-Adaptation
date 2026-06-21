@@ -37,10 +37,7 @@ const SHADOW_OPACITY = 0.4 // darkness of the duplicate "shadow"
 
 /** Build a normalised, per-instance clone of the basket with the given material
  *  factory, and return its root + the mesh that carries the "Open" morph. */
-function buildClone(
-  source: THREE.Object3D,
-  makeMaterial: () => THREE.Material,
-) {
+function buildClone(source: THREE.Object3D, makeMaterial: () => THREE.Material) {
   const root = source.clone(true)
 
   let morphMesh: THREE.Mesh | null = null
@@ -71,43 +68,42 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   const gltf = useGLTF(MODEL)
   const tex = useTexture(TEXTURE)
 
-  const { root, morphMesh, morphIndex, mats, shadowRoot, shadowMorph, shadowMats } =
-    useMemo(() => {
-      tex.colorSpace = THREE.SRGBColorSpace
-      tex.flipY = false // matches the glTF UV convention (top-left origin)
-      tex.needsUpdate = true
+  const { root, morphMesh, morphIndex, mats, shadowRoot, shadowMorph, shadowMats } = useMemo(() => {
+    tex.colorSpace = THREE.SRGBColorSpace
+    tex.flipY = false // matches the glTF UV convention (top-left origin)
+    tex.needsUpdate = true
 
-      // --- basket: unlit so the texture colour is exactly what you see ---
-      const mats: THREE.MeshBasicMaterial[] = []
-      const { root, morphMesh } = buildClone(gltf.scene, () => {
-        const m = new THREE.MeshBasicMaterial({
-          map: tex,
-          transparent: true, // texture alpha (woven holes) + fade-in
-          opacity: 0,
-        })
-        mats.push(m)
-        return m
+    // --- basket: unlit so the texture colour is exactly what you see ---
+    const mats: THREE.MeshBasicMaterial[] = []
+    const { root, morphMesh } = buildClone(gltf.scene, () => {
+      const m = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true, // texture alpha (woven holes) + fade-in
+        opacity: 0,
       })
+      mats.push(m)
+      return m
+    })
 
-      const dict = morphMesh?.morphTargetDictionary
-      const morphIndex = dict?.["Open"] ?? 0
+    const dict = morphMesh?.morphTargetDictionary
+    const morphIndex = dict?.["Open"] ?? 0
 
-      // --- shadow: identical duplicate, black tint, same transform/morph ---
-      const shadowMats: THREE.MeshBasicMaterial[] = []
-      const { root: shadowRoot, morphMesh: shadowMorph } = buildClone(gltf.scene, () => {
-        const m = new THREE.MeshBasicMaterial({
-          map: tex, // keep alpha so the woven holes match
-          color: "#000000", // black × albedo = dark silhouette
-          transparent: true,
-          opacity: 0,
-          depthWrite: false, // overlaps the basket exactly → don't fight depth
-        })
-        shadowMats.push(m)
-        return m
+    // --- shadow: identical duplicate, black tint, same transform/morph ---
+    const shadowMats: THREE.MeshBasicMaterial[] = []
+    const { root: shadowRoot, morphMesh: shadowMorph } = buildClone(gltf.scene, () => {
+      const m = new THREE.MeshBasicMaterial({
+        map: tex, // keep alpha so the woven holes match
+        color: "#000000", // black × albedo = dark silhouette
+        transparent: true,
+        opacity: 0,
+        depthWrite: false, // overlaps the basket exactly → don't fight depth
       })
+      shadowMats.push(m)
+      return m
+    })
 
-      return { root, morphMesh, morphIndex, mats, shadowRoot, shadowMorph, shadowMats }
-    }, [gltf, tex])
+    return { root, morphMesh, morphIndex, mats, shadowRoot, shadowMorph, shadowMats }
+  }, [gltf, tex])
 
   const outer = useRef<THREE.Group>(null!)
   const age = useRef(0)
@@ -121,9 +117,7 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
     for (const m of mats) m.opacity = drop
     for (const m of shadowMats) m.opacity = drop * SHADOW_OPACITY
     // 2) open via morph once landed — basket and shadow share the SAME value
-    const open = smootherstep(
-      Math.min(Math.max((a - DROP_DUR - OPEN_DELAY) / OPEN_DUR, 0), 1),
-    )
+    const open = smootherstep(Math.min(Math.max((a - DROP_DUR - OPEN_DELAY) / OPEN_DUR, 0), 1))
     if (morphMesh) morphMesh.morphTargetInfluences![morphIndex] = open
     if (shadowMorph) shadowMorph.morphTargetInfluences![morphIndex] = open
   })
@@ -132,7 +126,7 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
     <group ref={outer} position={[pos[0], DROP_HEIGHT, pos[2]]}>
       <primitive object={root} />
       {/* duplicate, dropped slightly below the basket — just a dark tint */}
-      <primitive object={shadowRoot} position={[0, -0.01, 0]} />
+      <primitive object={shadowRoot} position={[0.001, -0.001, 0.001]} />
     </group>
   )
 }
