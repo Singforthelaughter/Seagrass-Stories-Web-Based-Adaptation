@@ -6,6 +6,9 @@ import * as THREE from "three";
 import { useGame } from "@/lib/store";
 import type { RayParams } from "@/lib/store";
 
+const GAMEPLAY_Y = 1.3; // diver's swim height (rays rest at centerY here)
+const VERTICAL_FOLLOW = 0.3; // fraction of the diver's descent the rays sink by
+
 /**
  * Sun rays as a particle system: each particle is a long thin cylinder shaded
  * with an inverse fresnel — the surface facing the camera reads white/opaque and
@@ -137,6 +140,11 @@ function RayInstances({
     material.uniforms.uFadeSpeed.value = fadeSpeed;
     material.uniforms.uTime.value += d;
     group.current.rotation.y += d * speed * 0.1; // gentle drift
+    // sink the whole field a little as the diver/camera descend (a fraction of
+    // the drop), so the rays follow downward without fully tracking the camera
+    const diverY = useGame.getState().diverPos.y;
+    const targetY = (diverY - GAMEPLAY_Y) * VERTICAL_FOLLOW;
+    group.current.position.y = THREE.MathUtils.damp(group.current.position.y, targetY, 2.5, d);
   });
 
   return (
