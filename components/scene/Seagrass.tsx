@@ -28,10 +28,12 @@ const START_COUNT = 5 // sparse: the meadow has been damaged
 
 // --- growth around baskets ---
 const PER_BASKET = 5 // sprouts grown per anchor basket
-const CLUSTER_MIN = 0.5 // ring around the basket the sprouts grow in
-const CLUSTER_MAX = 1.5
+const CLUSTER_MIN = 0.25 // ring around the basket the sprouts grow in
+const CLUSTER_MAX = 1.25
 const GROW_DUR = 1.6 // seconds for one sprout to grow to full
 const GROW_STAGGER = 0.45 // delay between successive sprouts in a cluster
+const GROW_START_DELAY = 1.75 // pause after a basket is placed before the first
+// sprout grows (≈ the basket's drop + open time, so grass appears once it opens)
 
 type Blade = {
   variant: 0 | 1
@@ -115,7 +117,7 @@ function Cluster({ pos }: { pos: PlacedBasket["pos"] }) {
         position: [pos[0] + Math.cos(ang) * r, 0, pos[2] + Math.sin(ang) * r] as [number, number, number],
         rotY: rand(0, Math.PI * 2),
         scale: baseScale[variant] * rand(0.7, 1.2),
-        delay: i * GROW_STAGGER,
+        delay: GROW_START_DELAY + i * GROW_STAGGER,
       }
     })
   }, [pos, baseScale])
