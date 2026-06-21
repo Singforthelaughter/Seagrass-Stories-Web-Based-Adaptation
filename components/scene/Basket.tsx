@@ -28,8 +28,8 @@ const OPEN_DUR = 1.0; // morph open time
 
 const SHADOW_OPACITY = 0.4; // darkness of the fake shadow
 const SHADOW_FLAT = 0.05; // vertical squash → lies flat on the sand
-const SHADOW_OFFSET_X = 0.05; // nudge so some shadow peeks out beside the basket
-const SHADOW_OFFSET_Z = 0.05;
+const SHADOW_OFFSET_X = 0.005; // nudge so some shadow peeks out beside the basket
+const SHADOW_OFFSET_Z = 0.005;
 
 function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   const gltf = useGLTF(MODEL);
@@ -143,7 +143,7 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
       {/* fake shadow: flattened open-basket clone, offset so some of it shows */}
       <group
         ref={shadow}
-        position={[pos[0] + SHADOW_OFFSET_X, 0.03, pos[2] + SHADOW_OFFSET_Z]}
+        position={[pos[0] + SHADOW_OFFSET_X, 0.005, pos[2] + SHADOW_OFFSET_Z]}
         scale={0}
       >
         <primitive object={shadowRoot} />
