@@ -1,13 +1,13 @@
-"use client";
+"use client"
 
-import { useLayoutEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
-import { useGame } from "@/lib/store";
-import type { RayParams } from "@/lib/store";
+import { useLayoutEffect, useMemo, useRef } from "react"
+import { useFrame } from "@react-three/fiber"
+import * as THREE from "three"
+import { useGame } from "@/lib/store"
+import type { RayParams } from "@/lib/store"
 
-const GAMEPLAY_Y = 1.3; // diver's swim height (rays rest at centerY here)
-const VERTICAL_FOLLOW = 0.3; // fraction of the diver's descent the rays sink by
+const GAMEPLAY_Y = 1.0 // diver's swim height (rays rest at centerY here)
+const VERTICAL_FOLLOW = 0.5 // fraction of the diver's descent the rays sink by
 
 /**
  * Sun rays as a particle system: each particle is a long thin cylinder shaded
@@ -41,7 +41,7 @@ void main() {
   vFade = 0.5 + 0.5 * sin(uTime * uFadeSpeed + aPhase);
   gl_Position = projectionMatrix * mvPosition;
 }
-`;
+`
 
 const fragmentShader = /* glsl */ `
 varying float vFacing;
@@ -61,23 +61,11 @@ void main() {
   a *= uIntensity * vFade;
   gl_FragColor = vec4(uColor * a, a);
 }
-`;
+`
 
-function RayInstances({
-  count,
-  length,
-  radius,
-  intensity,
-  power,
-  tilt,
-  spread,
-  centerY,
-  speed,
-  fadeSpeed,
-  color,
-}: RayParams & { color: string }) {
-  const mesh = useRef<THREE.InstancedMesh>(null!);
-  const group = useRef<THREE.Group>(null!);
+function RayInstances({ count, length, radius, intensity, power, tilt, spread, centerY, speed, fadeSpeed, color }: RayParams & { color: string }) {
+  const mesh = useRef<THREE.InstancedMesh>(null!)
+  const group = useRef<THREE.Group>(null!)
 
   const material = useMemo(
     () =>
@@ -108,44 +96,44 @@ function RayInstances({
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
-  );
+  )
 
   // Place the cylinders + assign a random fade phase. Re-runs on layout change.
   useLayoutEffect(() => {
-    const dummy = new THREE.Object3D();
-    const tiltRad = (tilt * Math.PI) / 180;
-    const phases = new Float32Array(count);
+    const dummy = new THREE.Object3D()
+    const tiltRad = (tilt * Math.PI) / 180
+    const phases = new Float32Array(count)
     for (let i = 0; i < count; i++) {
-      const az = Math.random() * Math.PI * 2; // position azimuth
-      const r = Math.sqrt(Math.random()) * spread; // uniform disc spread
-      dummy.position.set(Math.cos(az) * r, centerY, Math.sin(az) * r);
+      const az = Math.random() * Math.PI * 2 // position azimuth
+      const r = Math.sqrt(Math.random()) * spread // uniform disc spread
+      dummy.position.set(Math.cos(az) * r, centerY, Math.sin(az) * r)
       // lean each ray a bit in a random horizontal direction
-      const leanDir = Math.random() * Math.PI * 2;
-      const amt = tiltRad * (0.4 + Math.random() * 0.6);
-      dummy.rotation.set(amt * Math.cos(leanDir), Math.random() * Math.PI, amt * Math.sin(leanDir));
-      dummy.scale.set(radius, length, radius);
-      dummy.updateMatrix();
-      mesh.current.setMatrixAt(i, dummy.matrix);
-      phases[i] = Math.random() * Math.PI * 2;
+      const leanDir = Math.random() * Math.PI * 2
+      const amt = tiltRad * (0.4 + Math.random() * 0.6)
+      dummy.rotation.set(amt * Math.cos(leanDir), Math.random() * Math.PI, amt * Math.sin(leanDir))
+      dummy.scale.set(radius, length, radius)
+      dummy.updateMatrix()
+      mesh.current.setMatrixAt(i, dummy.matrix)
+      phases[i] = Math.random() * Math.PI * 2
     }
-    mesh.current.instanceMatrix.needsUpdate = true;
-    mesh.current.geometry.setAttribute("aPhase", new THREE.InstancedBufferAttribute(phases, 1));
-  }, [count, length, radius, tilt, spread, centerY]);
+    mesh.current.instanceMatrix.needsUpdate = true
+    mesh.current.geometry.setAttribute("aPhase", new THREE.InstancedBufferAttribute(phases, 1))
+  }, [count, length, radius, tilt, spread, centerY])
 
   useFrame((_s, dt) => {
-    const d = Math.min(dt, 0.05);
-    material.uniforms.uIntensity.value = intensity;
-    material.uniforms.uPower.value = power;
-    material.uniforms.uColor.value.set(color);
-    material.uniforms.uFadeSpeed.value = fadeSpeed;
-    material.uniforms.uTime.value += d;
-    group.current.rotation.y += d * speed * 0.1; // gentle drift
+    const d = Math.min(dt, 0.05)
+    material.uniforms.uIntensity.value = intensity
+    material.uniforms.uPower.value = power
+    material.uniforms.uColor.value.set(color)
+    material.uniforms.uFadeSpeed.value = fadeSpeed
+    material.uniforms.uTime.value += d
+    group.current.rotation.y += d * speed * 0.1 // gentle drift
     // sink the whole field a little as the diver/camera descend (a fraction of
     // the drop), so the rays follow downward without fully tracking the camera
-    const diverY = useGame.getState().diverPos.y;
-    const targetY = (diverY - GAMEPLAY_Y) * VERTICAL_FOLLOW;
-    group.current.position.y = THREE.MathUtils.damp(group.current.position.y, targetY, 2.5, d);
-  });
+    const diverY = useGame.getState().diverPos.y
+    const targetY = (diverY - GAMEPLAY_Y) * VERTICAL_FOLLOW
+    group.current.position.y = THREE.MathUtils.damp(group.current.position.y, targetY, 2.5, d)
+  })
 
   return (
     <group ref={group}>
@@ -155,11 +143,11 @@ function RayInstances({
         <cylinderGeometry args={[1, 1, 1, 24, 1, true]} />
       </instancedMesh>
     </group>
-  );
+  )
 }
 
 export function SunRays({ color = "#eaf7ff" }: { color?: string }) {
-  const rays = useGame((s) => s.rays);
+  const rays = useGame((s) => s.rays)
   // Remount when the instance count changes (InstancedMesh size is fixed).
-  return <RayInstances key={rays.count} {...rays} color={color} />;
+  return <RayInstances key={rays.count} {...rays} color={color} />
 }
