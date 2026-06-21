@@ -124,9 +124,9 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
 
   return (
     <group ref={outer} position={[pos[0], DROP_HEIGHT, pos[2]]}>
-      <primitive object={root} />
+      <primitive object={root} position={[0.001, 0.001, 0]} />
       {/* duplicate, dropped slightly below the basket — just a dark tint */}
-      <primitive object={shadowRoot} position={[0.001, -0.001, 0.001]} />
+      <primitive object={shadowRoot} position={[0.001, 0, 0.001]} />
     </group>
   )
 }
