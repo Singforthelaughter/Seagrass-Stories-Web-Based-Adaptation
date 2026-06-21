@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { useMemo, useRef } from "react";
-import { Clone, useGLTF } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
-import { smootherstep } from "@/lib/ease";
-import { useGame } from "@/lib/store";
-import type { PlacedBasket } from "@/lib/store";
+import { useMemo, useRef } from "react"
+import { Clone, useGLTF } from "@react-three/drei"
+import { useFrame } from "@react-three/fiber"
+import * as THREE from "three"
+import { smootherstep } from "@/lib/ease"
+import { useGame } from "@/lib/store"
+import type { PlacedBasket } from "@/lib/store"
 
 /**
  * The seagrass meadow. Two authored variants (SM_SeaGrass_01 / _02) are mixed
@@ -18,162 +18,128 @@ import type { PlacedBasket } from "@/lib/store";
  *    sprouting in (scaling up, staggered) over time once a basket is dropped.
  */
 
-const MODELS = [
-  "/models/seagrass/seagrass0.glb",
-  "/models/seagrass/seagrass1.glb",
-] as const;
+const MODELS = ["/models/seagrass/seagrass0.glb", "/models/seagrass/seagrass1.glb"] as const
 
-const TARGET_HEIGHT = 1.6; // world units, tallest blade ~ this
+const TARGET_HEIGHT = 1.6 // world units, tallest blade ~ this
 
 // --- starting meadow ---
-const FIELD_BOUND = 88; // spread (just inside the diver's SWIM_BOUND of 90)
-const START_COUNT = 5; // sparse: the meadow has been damaged
+const FIELD_BOUND = 88 // spread (just inside the diver's SWIM_BOUND of 90)
+const START_COUNT = 5 // sparse: the meadow has been damaged
 
 // --- growth around baskets ---
-const PER_BASKET = 5; // sprouts grown per anchor basket
-const CLUSTER_MIN = 0.9; // ring around the basket the sprouts grow in
-const CLUSTER_MAX = 2.6;
-const GROW_DUR = 1.6; // seconds for one sprout to grow to full
-const GROW_STAGGER = 0.45; // delay between successive sprouts in a cluster
+const PER_BASKET = 5 // sprouts grown per anchor basket
+const CLUSTER_MIN = 0.5 // ring around the basket the sprouts grow in
+const CLUSTER_MAX = 1.5
+const GROW_DUR = 1.6 // seconds for one sprout to grow to full
+const GROW_STAGGER = 0.45 // delay between successive sprouts in a cluster
 
 type Blade = {
-  variant: 0 | 1;
-  x: number;
-  z: number;
-  rotY: number;
-  scale: number;
-};
+  variant: 0 | 1
+  x: number
+  z: number
+  rotY: number
+  scale: number
+}
 
 /** Loads both seagrass variants and the per-variant scale that normalises them
  *  to TARGET_HEIGHT. Models are cached, so this is shared cheaply. */
 function useSeagrassModels() {
-  const gltf0 = useGLTF(MODELS[0]);
-  const gltf1 = useGLTF(MODELS[1]);
-  const scenes = useMemo(() => [gltf0.scene, gltf1.scene], [gltf0.scene, gltf1.scene]);
+  const gltf0 = useGLTF(MODELS[0])
+  const gltf1 = useGLTF(MODELS[1])
+  const scenes = useMemo(() => [gltf0.scene, gltf1.scene], [gltf0.scene, gltf1.scene])
   const baseScale = useMemo(
     () =>
       scenes.map((scene) => {
-        const box = new THREE.Box3().setFromObject(scene);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        return TARGET_HEIGHT / Math.max(size.y, 1e-4);
+        const box = new THREE.Box3().setFromObject(scene)
+        const size = new THREE.Vector3()
+        box.getSize(size)
+        return TARGET_HEIGHT / Math.max(size.y, 1e-4)
       }),
     [scenes],
-  );
-  return { scenes, baseScale };
+  )
+  return { scenes, baseScale }
 }
 
 /** The sparse starting meadow — a handful of random clumps. Rendered inside the
  *  seafloor's scaling group, so it grows in with the floor on dive-in. */
 export function SeagrassField() {
-  const { scenes, baseScale } = useSeagrassModels();
+  const { scenes, baseScale } = useSeagrassModels()
 
   const blades = useMemo<Blade[]>(() => {
-    const rand = (a: number, b: number) => a + Math.random() * (b - a);
+    const rand = (a: number, b: number) => a + Math.random() * (b - a)
     return Array.from({ length: START_COUNT }, () => ({
       variant: (Math.random() < 0.5 ? 0 : 1) as 0 | 1,
       x: rand(-FIELD_BOUND, FIELD_BOUND),
       z: rand(-FIELD_BOUND, FIELD_BOUND),
       rotY: rand(0, Math.PI * 2),
       scale: rand(0.75, 1.4),
-    }));
-  }, []);
+    }))
+  }, [])
 
   return (
     <group>
       {blades.map((b, i) => (
-        <Clone
-          key={i}
-          object={scenes[b.variant]}
-          position={[b.x, 0, b.z]}
-          rotation={[0, b.rotY, 0]}
-          scale={baseScale[b.variant] * b.scale}
-          castShadow
-          receiveShadow
-        />
+        <Clone key={i} object={scenes[b.variant]} position={[b.x, 0, b.z]} rotation={[0, b.rotY, 0]} scale={baseScale[b.variant] * b.scale} castShadow receiveShadow />
       ))}
     </group>
-  );
+  )
 }
 
 /** A single sprout that scales up from 0 → full over GROW_DUR after `delay`. */
-function Sprout({
-  object,
-  position,
-  rotY,
-  scale,
-  delay,
-}: {
-  object: THREE.Object3D;
-  position: [number, number, number];
-  rotY: number;
-  scale: number;
-  delay: number;
-}) {
-  const ref = useRef<THREE.Group>(null!);
-  const age = useRef(0);
+function Sprout({ object, position, rotY, scale, delay }: { object: THREE.Object3D; position: [number, number, number]; rotY: number; scale: number; delay: number }) {
+  const ref = useRef<THREE.Group>(null!)
+  const age = useRef(0)
   useFrame((_s, dt) => {
-    age.current += Math.min(dt, 0.05);
-    const t = THREE.MathUtils.clamp((age.current - delay) / GROW_DUR, 0, 1);
-    ref.current.scale.setScalar(smootherstep(t) * scale);
-  });
+    age.current += Math.min(dt, 0.05)
+    const t = THREE.MathUtils.clamp((age.current - delay) / GROW_DUR, 0, 1)
+    ref.current.scale.setScalar(smootherstep(t) * scale)
+  })
   return (
     <group ref={ref} position={position} rotation={[0, rotY, 0]} scale={0}>
       <Clone object={object} castShadow receiveShadow />
     </group>
-  );
+  )
 }
 
 /** Seagrass grown around one anchor basket. */
 function Cluster({ pos }: { pos: PlacedBasket["pos"] }) {
-  const { scenes, baseScale } = useSeagrassModels();
+  const { scenes, baseScale } = useSeagrassModels()
   const sprouts = useMemo(() => {
-    const rand = (a: number, b: number) => a + Math.random() * (b - a);
+    const rand = (a: number, b: number) => a + Math.random() * (b - a)
     return Array.from({ length: PER_BASKET }, (_, i) => {
-      const variant = (Math.random() < 0.5 ? 0 : 1) as 0 | 1;
-      const ang = rand(0, Math.PI * 2);
-      const r = rand(CLUSTER_MIN, CLUSTER_MAX);
+      const variant = (Math.random() < 0.5 ? 0 : 1) as 0 | 1
+      const ang = rand(0, Math.PI * 2)
+      const r = rand(CLUSTER_MIN, CLUSTER_MAX)
       return {
         variant,
-        position: [pos[0] + Math.cos(ang) * r, 0, pos[2] + Math.sin(ang) * r] as [
-          number,
-          number,
-          number,
-        ],
+        position: [pos[0] + Math.cos(ang) * r, 0, pos[2] + Math.sin(ang) * r] as [number, number, number],
         rotY: rand(0, Math.PI * 2),
         scale: baseScale[variant] * rand(0.7, 1.2),
         delay: i * GROW_STAGGER,
-      };
-    });
-  }, [pos, baseScale]);
+      }
+    })
+  }, [pos, baseScale])
 
   return (
     <>
       {sprouts.map((s, i) => (
-        <Sprout
-          key={i}
-          object={scenes[s.variant]}
-          position={s.position}
-          rotY={s.rotY}
-          scale={s.scale}
-          delay={s.delay}
-        />
+        <Sprout key={i} object={scenes[s.variant]} position={s.position} rotY={s.rotY} scale={s.scale} delay={s.delay} />
       ))}
     </>
-  );
+  )
 }
 
 /** Grows seagrass around every placed anchor basket. */
 export function BasketSeagrass() {
-  const baskets = useGame((s) => s.baskets);
+  const baskets = useGame((s) => s.baskets)
   return (
     <>
       {baskets.map((b) => (
         <Cluster key={b.id} pos={b.pos} />
       ))}
     </>
-  );
+  )
 }
 
-useGLTF.preload(MODELS[0]);
-useGLTF.preload(MODELS[1]);
+useGLTF.preload(MODELS[0])
+useGLTF.preload(MODELS[1])
