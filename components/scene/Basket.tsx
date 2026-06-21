@@ -22,13 +22,15 @@ const DROP_HEIGHT = 4; // spawns this high, then drops to the seabed
 const DROP_DUR = 0.6; // fade-in + drop time
 const OPEN_DELAY = 0.15; // pause closed after landing
 const OPEN_DUR = 1.0; // morph open time
+const SINK = 0.25; // settle slightly into the sand so it doesn't float
+const SHADOW_OPACITY = 0.4; // strength of the fake contact shadow
 
 function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   const gltf = useGLTF(MODEL);
   const tex = useTexture(TEXTURE);
 
   // Clone per instance so each basket has its own morph influences + transform.
-  const { root, morphMesh, morphIndex, mats } = useMemo(() => {
+  const { root, morphMesh, morphIndex, mats, shadowMat, shadowSize } = useMemo(() => {
     const root = gltf.scene.clone(true);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.flipY = false; // glTF UV convention
@@ -39,11 +41,15 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
     root.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
-      mesh.castShadow = true;
+      mesh.castShadow = false; // we fake the shadow with a plane below
       mesh.receiveShadow = true;
       const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
       mat.map = tex;
-      mat.color.set("#ffffff"); // let the texture show its true colours
+      mat.color.set("#ffffff"); // let the texture's brown show through
+      // glTF defaults to metallic; that reflected the env as white. Make it a
+      // matte non-metal so the wicker albedo reads properly.
+      mat.metalness = 0;
+      mat.roughness = 0.85;
       mat.transparent = true; // for the fade-in
       mat.opacity = 0;
       mat.needsUpdate = true;
@@ -62,10 +68,23 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
     const center = new THREE.Vector3();
     box.getCenter(center);
     root.position.set(-center.x, -box.min.y, -center.z);
+    box.setFromObject(root);
+    box.getSize(size);
+    const shadowSize = Math.max(size.x, size.z) * 0.95;
+
+    // Fake contact shadow: a flat plane below using the basket texture's alpha,
+    // tinted black (unlit), so the basket reads as grounded without real shadows.
+    const shadowMat = new THREE.MeshBasicMaterial({
+      map: tex,
+      color: "#000000",
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
 
     const dict = (morphMesh as THREE.Mesh | null)?.morphTargetDictionary;
     const morphIndex = dict?.["Open"] ?? 0;
-    return { root, morphMesh: morphMesh as THREE.Mesh | null, morphIndex, mats };
+    return { root, morphMesh: morphMesh as THREE.Mesh | null, morphIndex, mats, shadowMat, shadowSize };
   }, [gltf, tex]);
 
   const outer = useRef<THREE.Group>(null!);
@@ -74,10 +93,11 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   useFrame((_s, dt) => {
     age.current += Math.min(dt, 0.05);
     const a = age.current;
-    // 1) fade in while dropping down to the seabed
+    // 1) fade in while dropping down to (slightly into) the seabed
     const drop = smootherstep(Math.min(a / DROP_DUR, 1));
-    outer.current.position.y = THREE.MathUtils.lerp(DROP_HEIGHT, 0, drop);
+    outer.current.position.y = THREE.MathUtils.lerp(DROP_HEIGHT, -SINK, drop);
     for (const m of mats) m.opacity = drop;
+    shadowMat.opacity = drop * SHADOW_OPACITY;
     // 2) open via morph once landed
     if (morphMesh) {
       const t = (a - DROP_DUR - OPEN_DELAY) / OPEN_DUR;
@@ -88,9 +108,19 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
   });
 
   return (
-    <group ref={outer} position={[pos[0], DROP_HEIGHT, pos[2]]}>
-      <primitive object={root} />
-    </group>
+    <>
+      <group ref={outer} position={[pos[0], DROP_HEIGHT, pos[2]]}>
+        <primitive object={root} />
+      </group>
+      {/* fake contact shadow on the sand */}
+      <mesh
+        position={[pos[0], 0.03, pos[2]]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        material={shadowMat}
+      >
+        <planeGeometry args={[shadowSize, shadowSize]} />
+      </mesh>
+    </>
   );
 }
 
