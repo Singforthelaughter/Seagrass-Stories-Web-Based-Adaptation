@@ -14,6 +14,7 @@ export type RayParams = {
   spread: number; // XZ distribution radius
   centerY: number; // vertical centre of the shafts
   speed: number; // slow drift/rotation speed
+  fadeSpeed: number; // per-ray fade in/out rate (0 = no fade)
 };
 
 /** "personalise" = inspecting the diver up close; "playing" = in the meadow. */
@@ -83,15 +84,16 @@ export const useGame = create<GameState>((set) => ({
   health: 0,
   setHealth: (h) => set({ health: Math.max(0, Math.min(1, h)) }),
   rays: {
-    count: 40,
-    length: 80,
-    radius: 1.4,
-    intensity: 1.0,
-    power: 2.5,
-    tilt: 12,
-    spread: 60,
-    centerY: 15,
-    speed: 0.1,
+    count: 85,
+    length: 115,
+    radius: 2,
+    intensity: 1.95,
+    power: 4,
+    tilt: 8,
+    spread: 34,
+    centerY: 12,
+    speed: 0.05,
+    fadeSpeed: 0.5,
   },
   setRays: (p) => set((s) => ({ rays: { ...s.rays, ...p } })),
 }));

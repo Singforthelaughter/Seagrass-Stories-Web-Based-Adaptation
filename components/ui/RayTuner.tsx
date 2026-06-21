@@ -19,6 +19,7 @@ const SLIDERS: { key: keyof RayParams; label: string; min: number; max: number; 
   { key: "spread", label: "Spread", min: 2, max: 140, step: 2 },
   { key: "centerY", label: "Center Y", min: -10, max: 40, step: 1 },
   { key: "speed", label: "Drift speed", min: 0, max: 3, step: 0.05 },
+  { key: "fadeSpeed", label: "Fade speed", min: 0, max: 3, step: 0.05 },
 ];
 
 export function RayTuner({ forceShow = false }: { forceShow?: boolean }) {

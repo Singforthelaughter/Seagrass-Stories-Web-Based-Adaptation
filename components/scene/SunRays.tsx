@@ -18,8 +18,12 @@ import type { RayParams } from "@/lib/store";
  */
 
 const vertexShader = /* glsl */ `
+attribute float aPhase;
 varying float vFacing;
+varying float vFade;
 varying vec2 vUv;
+uniform float uTime;
+uniform float uFadeSpeed;
 void main() {
   vUv = uv;
   vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
@@ -28,12 +32,15 @@ void main() {
   vec3 n = normalize(normalMatrix * (mat3(instanceMatrix) * normal));
   vec3 viewDir = normalize(-mvPosition.xyz);
   vFacing = abs(dot(n, viewDir)); // 1 = facing camera (inner), 0 = silhouette
+  // each ray fades in and out on its own phase
+  vFade = 0.5 + 0.5 * sin(uTime * uFadeSpeed + aPhase);
   gl_Position = projectionMatrix * mvPosition;
 }
 `;
 
 const fragmentShader = /* glsl */ `
 varying float vFacing;
+varying float vFade;
 varying vec2 vUv;
 uniform vec3 uColor;
 uniform float uIntensity;
@@ -43,7 +50,7 @@ void main() {
   float a = pow(vFacing, uPower);
   // fade the lower end so shafts dissolve as they descend
   a *= smoothstep(0.0, 0.3, vUv.y);
-  a *= uIntensity;
+  a *= uIntensity * vFade;
   gl_FragColor = vec4(uColor * a, a);
 }
 `;
@@ -58,6 +65,7 @@ function RayInstances({
   spread,
   centerY,
   speed,
+  fadeSpeed,
   color,
 }: RayParams & { color: string }) {
   const mesh = useRef<THREE.InstancedMesh>(null!);
@@ -72,6 +80,8 @@ function RayInstances({
           uColor: { value: new THREE.Color(color) },
           uIntensity: { value: intensity },
           uPower: { value: power },
+          uTime: { value: 0 },
+          uFadeSpeed: { value: fadeSpeed },
         },
         transparent: true,
         depthWrite: false,
@@ -84,10 +94,11 @@ function RayInstances({
     [],
   );
 
-  // Place the cylinders. Re-runs when any layout param changes.
+  // Place the cylinders + assign a random fade phase. Re-runs on layout change.
   useLayoutEffect(() => {
     const dummy = new THREE.Object3D();
     const tiltRad = (tilt * Math.PI) / 180;
+    const phases = new Float32Array(count);
     for (let i = 0; i < count; i++) {
       const az = Math.random() * Math.PI * 2; // position azimuth
       const r = Math.sqrt(Math.random()) * spread; // uniform disc spread
@@ -99,15 +110,20 @@ function RayInstances({
       dummy.scale.set(radius, length, radius);
       dummy.updateMatrix();
       mesh.current.setMatrixAt(i, dummy.matrix);
+      phases[i] = Math.random() * Math.PI * 2;
     }
     mesh.current.instanceMatrix.needsUpdate = true;
+    mesh.current.geometry.setAttribute("aPhase", new THREE.InstancedBufferAttribute(phases, 1));
   }, [count, length, radius, tilt, spread, centerY]);
 
   useFrame((_s, dt) => {
+    const d = Math.min(dt, 0.05);
     material.uniforms.uIntensity.value = intensity;
     material.uniforms.uPower.value = power;
     material.uniforms.uColor.value.set(color);
-    group.current.rotation.y += Math.min(dt, 0.05) * speed * 0.1; // gentle drift
+    material.uniforms.uFadeSpeed.value = fadeSpeed;
+    material.uniforms.uTime.value += d;
+    group.current.rotation.y += d * speed * 0.1; // gentle drift
   });
 
   return (
