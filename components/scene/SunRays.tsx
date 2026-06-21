@@ -6,7 +6,7 @@ import * as THREE from "three"
 import { useGame } from "@/lib/store"
 import type { RayParams } from "@/lib/store"
 
-const GAMEPLAY_Y = 1.0 // diver's swim height (rays rest at centerY here)
+const GAMEPLAY_Y = 0.5 // diver's swim height (rays rest at centerY here)
 const VERTICAL_FOLLOW = 0.5 // fraction of the diver's descent the rays sink by
 
 /**

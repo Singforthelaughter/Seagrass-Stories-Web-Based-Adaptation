@@ -2,8 +2,10 @@
 
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
+import type { ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { smootherstep } from "@/lib/ease";
+import { useGame } from "@/lib/store";
 
 /**
  * The sandy seafloor. Hidden (scale 0) during personalise, then grows in on
@@ -115,9 +117,23 @@ export function Seafloor({
     time.current.value = state.clock.elapsedTime * 0.3; // caustic drift speed
   });
 
+  // Tap the seabed (while playing) to drop an anchor basket at that spot.
+  const onPlace = (e: ThreeEvent<PointerEvent>) => {
+    const { phase, addBasket } = useGame.getState();
+    if (phase !== "playing") return;
+    e.stopPropagation();
+    addBasket([e.point.x, 0, e.point.z]);
+  };
+
   return (
     <group ref={ref} scale={0} visible={false}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow material={material}>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0, 0]}
+        receiveShadow
+        material={material}
+        onPointerDown={onPlace}
+      >
         <planeGeometry args={[200, 200, 1, 1]} />
       </mesh>
       {children}

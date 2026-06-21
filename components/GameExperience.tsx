@@ -8,6 +8,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { Seafloor } from "./scene/Seafloor";
 import { SeagrassField } from "./scene/Seagrass";
+import { Baskets } from "./scene/Basket";
 import { FishSchool } from "./scene/FishSchool";
 import { SunRays } from "./scene/SunRays";
 import { WaterDistortion } from "./scene/WaterDistortion";
@@ -214,6 +215,8 @@ export function GameExperience() {
         <SeagrassField />
       </Seafloor>
       <DiverRig controls={controls} progress={progress} />
+      {/* Anchor baskets the player taps onto the seafloor. */}
+      <Baskets />
       {/* Marine life appears only once the meadow is healthy enough. */}
       {healthy && <FishSchool />}
       <Controls controls={controls} />

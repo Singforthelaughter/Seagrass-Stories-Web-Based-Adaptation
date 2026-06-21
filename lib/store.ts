@@ -3,6 +3,9 @@ import * as THREE from "three";
 
 export type Vec3 = [number, number, number];
 
+/** A placed anchor basket. */
+export type PlacedBasket = { id: string; pos: Vec3 };
+
 /** Sun-ray tuning parameters (cylinder-particle system). */
 export type RayParams = {
   count: number; // number of ray cylinders
@@ -47,6 +50,9 @@ interface GameState {
    */
   move: [number, number];
   setMove: (x: number, y: number) => void;
+  /** Anchor baskets the player has placed on the seafloor. */
+  baskets: PlacedBasket[];
+  addBasket: (pos: Vec3) => void;
   /**
    * Ecosystem health, 0 (barren) → 1 (thriving). The meadow starts damaged, so
    * it begins low. Marine life (e.g. the fish school) only appears once health
@@ -80,6 +86,9 @@ export const useGame = create<GameState>((set) => ({
   setSuitHistory: (urls) => set({ suitTextureHistory: urls }),
   move: [0, 0],
   setMove: (x, y) => set({ move: [x, y] }),
+  baskets: [],
+  addBasket: (pos) =>
+    set((s) => ({ baskets: [...s.baskets, { id: crypto.randomUUID(), pos }] })),
   diverPos: new THREE.Vector3(),
   health: 0,
   setHealth: (h) => set({ health: Math.max(0, Math.min(1, h)) }),
