@@ -48,15 +48,16 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
       if (!mesh.isMesh) return;
       mesh.castShadow = false; // we fake the shadow below
       mesh.receiveShadow = true;
-      const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
-      mat.map = tex;
-      mat.color.set("#ffffff"); // let the texture's brown show through
-      // glTF defaults to metallic; that reflected the env as white. Make it a
-      // matte non-metal so the wicker albedo reads properly.
-      mat.metalness = 0;
-      mat.roughness = 0.85;
-      mat.transparent = true; // for the fade-in
-      mat.opacity = 0;
+      // The GLB material has no texture, so build a fresh one with the texture
+      // as albedo (cloning the GLB material wasn't picking up the map).
+      const mat = new THREE.MeshStandardMaterial({
+        map: tex,
+        metalness: 0,
+        roughness: 0.85,
+        envMapIntensity: 0.5, // keep the bright IBL from washing the brown out
+        transparent: true, // for the fade-in
+        opacity: 0,
+      });
       mat.needsUpdate = true;
       mesh.material = mat;
       mats.push(mat);
@@ -74,37 +75,27 @@ function Basket({ pos }: { pos: PlacedBasket["pos"] }) {
     box.getCenter(center);
     root.position.set(-center.x, -box.min.y, -center.z);
 
-    // --- shadow: a dark clone of the basket, kept fully OPEN ---
-    const shadowRoot = gltf.scene.clone(true);
+    const dict = (morphMesh as THREE.Mesh | null)?.morphTargetDictionary;
+    const morphIndex = dict?.["Open"] ?? 0;
+
+    // --- shadow: clone the ALREADY-NORMALISED basket so its transform is
+    // identical (guaranteed alignment), then black it out and keep it open. ---
+    const shadowRoot = root.clone(true);
     const shadowMats: THREE.MeshBasicMaterial[] = [];
     shadowRoot.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
-      mesh.castShadow = false;
-      mesh.receiveShadow = false;
       const smat = new THREE.MeshBasicMaterial({
-        map: tex, // use the texture's alpha so the weave holes show through
-        color: "#000000", // black × albedo = black, alpha from the map
+        map: tex, // texture alpha → the woven holes show in the shadow
+        color: "#000000", // black × albedo = black silhouette
         transparent: true,
         opacity: 0,
         depthWrite: false,
       });
       mesh.material = smat;
       shadowMats.push(smat);
-      if (mesh.morphTargetInfluences) {
-        const idx = mesh.morphTargetDictionary?.["Open"] ?? 0;
-        mesh.morphTargetInfluences[idx] = 1; // open shape
-      }
+      if (mesh.morphTargetInfluences) mesh.morphTargetInfluences[morphIndex] = 1; // open
     });
-    shadowRoot.scale.setScalar(s);
-    // Align horizontally with the basket by using the basket's (closed) centre,
-    // so the open shadow sits exactly under the open basket. Use the shadow's
-    // own min.y only to rest it on the ground.
-    const sbox = new THREE.Box3().setFromObject(shadowRoot);
-    shadowRoot.position.set(-center.x, -sbox.min.y, -center.z);
-
-    const dict = (morphMesh as THREE.Mesh | null)?.morphTargetDictionary;
-    const morphIndex = dict?.["Open"] ?? 0;
     return {
       root,
       morphMesh: morphMesh as THREE.Mesh | null,
