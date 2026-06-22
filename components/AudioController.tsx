@@ -55,23 +55,21 @@ export function AudioController() {
     });
   }, []);
 
-  // Environment health improvements. Delayed + debounced so the "reward" cue
-  // lands AFTER the basket-open (~0.75s) and seagrass-growing (~1.75s) sounds
-  // instead of masking them, and so a quick burst of baskets dings only once.
+  // The per-improvement "environment restored" SFX was removed: it clashed with
+  // the basket-open and seagrass-growing sounds. Only the one-time 100%
+  // celebration remains, delayed so it lands after those sounds rather than on
+  // top of them.
   useEffect(() => {
-    const HEALTH_SFX_DELAY = 2300; // ms after the (last) improvement
+    const FULL_SFX_DELAY = 2300; // ms after first reaching full health
     let prev = useGame.getState().health;
-    let pendingFull = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const unsub = useGame.subscribe((s) => {
-      if (s.health > prev) {
-        if (s.health >= 1 && prev < 1) pendingFull = true;
+      if (s.health >= 1 && prev < 1) {
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => {
-          playSfx(pendingFull ? "fullHealth" : "healthRestored");
-          pendingFull = false;
+          playSfx("fullHealth");
           timer = null;
-        }, HEALTH_SFX_DELAY);
+        }, FULL_SFX_DELAY);
       }
       prev = s.health;
     });
