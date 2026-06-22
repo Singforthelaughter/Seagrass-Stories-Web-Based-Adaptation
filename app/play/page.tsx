@@ -9,6 +9,7 @@ import { Joystick } from "@/components/ui/Joystick";
 import { RayTuner } from "@/components/ui/RayTuner";
 import { BasketHUD } from "@/components/ui/BasketHUD";
 import { HealthBar } from "@/components/ui/HealthBar";
+import { FunFact } from "@/components/ui/FunFact";
 import { EmoteBar } from "@/components/ui/EmoteBar";
 import { DiverRunnerGame } from "@/components/ui/DiverRunnerGame";
 import { playSfx, unlockAudio } from "@/lib/audio";
@@ -249,6 +250,9 @@ export default function PlayPage() {
       {/* Environment health (top-centre) + basket batch / cooldown HUD (corner) */}
       <HealthBar />
       <BasketHUD />
+
+      {/* Flashes a seagrass fun-fact each time the meadow's health improves */}
+      <FunFact />
 
       {/* First-time hint: tap the seafloor to plant. Fades out after the first
           basket is placed. */}

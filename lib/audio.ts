@@ -26,7 +26,7 @@ const SFX = {
   miniGameHit: { src: `${BASE}/MiniGameHitSFX.wav`, vol: 0.8 },
   miniGameJump: { src: `${BASE}/MiniGameJumpSFX.mp3`, vol: 0.6 },
   seaGrassGrowing: { src: `${BASE}/seaGrassGrowingSFX.mp3`, vol: 0.8 },
-  start: { src: `${BASE}/StartSFX.mp3`, vol: 0.9 },
+  start: { src: `${BASE}/StartSFX.mp3`, vol: 0.3 },
 } as const;
 
 /** Looped background tracks. */

@@ -55,16 +55,30 @@ export function AudioController() {
     });
   }, []);
 
-  // Environment health improvements.
+  // Environment health improvements. Delayed + debounced so the "reward" cue
+  // lands AFTER the basket-open (~0.75s) and seagrass-growing (~1.75s) sounds
+  // instead of masking them, and so a quick burst of baskets dings only once.
   useEffect(() => {
+    const HEALTH_SFX_DELAY = 2300; // ms after the (last) improvement
     let prev = useGame.getState().health;
-    return useGame.subscribe((s) => {
+    let pendingFull = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsub = useGame.subscribe((s) => {
       if (s.health > prev) {
-        if (s.health >= 1 && prev < 1) playSfx("fullHealth");
-        else playSfx("healthRestored");
+        if (s.health >= 1 && prev < 1) pendingFull = true;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          playSfx(pendingFull ? "fullHealth" : "healthRestored");
+          pendingFull = false;
+          timer = null;
+        }, HEALTH_SFX_DELAY);
       }
       prev = s.health;
     });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsub();
+    };
   }, []);
 
   // Local player's emote.

@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { useFBX, useTexture, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
 import { useGame } from "@/lib/store";
+import { loadSuitTexture } from "@/lib/loadSuitTexture";
 
 /**
  * The user-provided scuba diver model (FBX) with its PBR texture sets.
@@ -168,12 +169,7 @@ export function Diver({
       mat.needsUpdate = true;
       return;
     }
-    let disposed = false;
-    new THREE.TextureLoader().load(suitTextureUrl, (tex) => {
-      if (disposed) {
-        tex.dispose();
-        return;
-      }
+    return loadSuitTexture(suitTextureUrl, (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       mat.map?.dispose();
@@ -181,9 +177,6 @@ export function Diver({
       mat.color.set("#ffffff"); // let the texture show its true colours
       mat.needsUpdate = true;
     });
-    return () => {
-      disposed = true;
-    };
   }, [suitTextureUrl, model]);
 
   return (

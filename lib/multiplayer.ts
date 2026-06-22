@@ -50,6 +50,14 @@ let channel: RealtimeChannel | null = null;
 let myId: string | null = null;
 let localTexture: string | null = null;
 
+/** Only durable http(s) URLs are safe/small enough to share over presence — a
+ *  base64 `data:` URL (the offline / unpersisted fallback) can be multiple MB,
+ *  which overflows the realtime message and throws. Others just see a plain suit
+ *  in that case; the local player still sees their own texture. */
+function shareableTexture(url: string | null): string | null {
+  return url && /^https?:\/\//i.test(url) ? url : null;
+}
+
 function patchPlayer(id: string, patch: Partial<RemotePlayer>) {
   useMultiplayer.setState((s) => {
     const prev = s.players[id] ?? { id, texture: null, emote: null, emoteAt: 0 };
@@ -83,7 +91,7 @@ export async function connectMultiplayer() {
   if (!sb || channel) return;
   myId = useGame.getState().playerId;
   if (!myId) return;
-  localTexture = useGame.getState().suitTextureUrl;
+  localTexture = shareableTexture(useGame.getState().suitTextureUrl);
 
   channel = sb.channel(`room:${ROOM}`, {
     config: { presence: { key: myId }, broadcast: { self: false } },
@@ -130,7 +138,11 @@ export async function connectMultiplayer() {
   channel.subscribe(async (status) => {
     if (status === "SUBSCRIBED") {
       useMultiplayer.setState({ connected: true });
-      await channel!.track({ id: myId, texture: localTexture });
+      try {
+        await channel!.track({ id: myId, texture: localTexture });
+      } catch (e) {
+        console.warn("Presence track failed:", e);
+      }
       await loadBaskets();
     }
   });
@@ -162,9 +174,13 @@ export function broadcastEmote(emote: string) {
 }
 
 export async function setLocalTexture(texture: string | null) {
-  localTexture = texture;
+  localTexture = shareableTexture(texture);
   if (channel && useMultiplayer.getState().connected) {
-    await channel.track({ id: myId, texture });
+    try {
+      await channel.track({ id: myId, texture: localTexture });
+    } catch (e) {
+      console.warn("Presence track failed:", e);
+    }
   }
 }
 

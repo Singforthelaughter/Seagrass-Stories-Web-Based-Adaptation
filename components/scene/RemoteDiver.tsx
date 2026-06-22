@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useFBX, useTexture, useAnimations, Html } from "@react-three/drei";
 import * as THREE from "three";
+import { loadSuitTexture } from "@/lib/loadSuitTexture";
 import { SkeletonUtils } from "three-stdlib";
 import { remotePoses } from "@/lib/multiplayer";
 
@@ -131,9 +132,7 @@ export function RemoteDiver({
       mat.needsUpdate = true;
       return;
     }
-    let disposed = false;
-    new THREE.TextureLoader().load(texture, (tex) => {
-      if (disposed) return tex.dispose();
+    return loadSuitTexture(texture, (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       mat.map?.dispose();
@@ -141,9 +140,6 @@ export function RemoteDiver({
       mat.color.set("#ffffff");
       mat.needsUpdate = true;
     });
-    return () => {
-      disposed = true;
-    };
   }, [texture]);
 
   useFrame((_s, dtRaw) => {
