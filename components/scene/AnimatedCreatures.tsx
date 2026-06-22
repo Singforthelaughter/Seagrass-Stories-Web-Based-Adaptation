@@ -72,23 +72,30 @@ export function AnimatedCreatures({
     material.opacity = cur < target ? Math.min(target, cur + step) : Math.max(target, cur - step);
   });
 
-  // Deterministic-ish spawn states, once.
-  const spawns = useMemo(
-    () =>
-      Array.from({ length: count }, () => {
-        const ang = Math.random() * Math.PI * 2;
-        const r = (0.3 + Math.random() * 0.6) * config.bound;
-        return {
-          x: Math.cos(ang) * r,
-          z: Math.sin(ang) * r,
-          y: config.yMin + Math.random() * (config.yMax - config.yMin),
-          heading: Math.random() * Math.PI * 2,
-          phase: Math.random(),
-          wanderIn: Math.random() * config.wanderInterval,
-        };
-      }),
-    [count, config.bound, config.yMin, config.yMax, config.wanderInterval],
-  );
+  // Spawn states, once. Rejection-sample so no two creatures start at the same
+  // spot or overlapping (min horizontal separation scales with their size).
+  const spawns = useMemo<Spawn[]>(() => {
+    const out: Spawn[] = [];
+    const sep = config.targetSize * 1.5; // min centre-to-centre distance
+    let attempts = 0;
+    while (out.length < count && attempts < count * 300) {
+      attempts++;
+      const ang = Math.random() * Math.PI * 2;
+      const r = (0.2 + Math.random() * 0.7) * config.bound;
+      const x = Math.cos(ang) * r;
+      const z = Math.sin(ang) * r;
+      if (out.some((s) => Math.hypot(s.x - x, s.z - z) < sep)) continue;
+      out.push({
+        x,
+        z,
+        y: config.yMin + Math.random() * (config.yMax - config.yMin),
+        heading: Math.random() * Math.PI * 2,
+        phase: Math.random(),
+        wanderIn: Math.random() * config.wanderInterval,
+      });
+    }
+    return out;
+  }, [count, config.targetSize, config.bound, config.yMin, config.yMax, config.wanderInterval]);
 
   return (
     <>

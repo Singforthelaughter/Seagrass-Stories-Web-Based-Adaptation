@@ -2,8 +2,9 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import type { CreatureKey, DebugParams } from "@/components/CreatureDebugScene";
+import type { CreatureKey, DebugParams, DebugMode } from "@/components/CreatureDebugScene";
 import { JUVENILE_FISH, SCAD_FISH, TURTLE, DUGONG } from "@/components/scene/creatures";
+import { TURTLE_COUNT, DUGONG_COUNT } from "@/lib/gameConfig";
 
 const CreatureDebugScene = dynamic(
   () => import("@/components/CreatureDebugScene").then((m) => m.CreatureDebugScene),
@@ -44,6 +45,8 @@ function initParams(): Record<CreatureKey, DebugParams> {
 
 export default function CreaturesDebugPage() {
   const [selected, setSelected] = useState<CreatureKey>("juvenile");
+  const [showPanel, setShowPanel] = useState(true);
+  const [mode, setMode] = useState<DebugMode>("static");
   const [all, setAll] = useState<Record<CreatureKey, DebugParams>>(initParams);
   const p = all[selected];
   const isFish = selected === "juvenile" || selected === "scad";
@@ -59,11 +62,30 @@ export default function CreaturesDebugPage() {
   return (
     <main className="relative h-screen w-full bg-[#0b3547]">
       <div className="absolute inset-0">
-        <CreatureDebugScene selected={selected} params={p} />
+        <CreatureDebugScene selected={selected} params={p} mode={mode} />
       </div>
 
+      {/* show button (when panel hidden) */}
+      {!showPanel && (
+        <button
+          onClick={() => setShowPanel(true)}
+          className="absolute left-3 top-3 z-10 rounded-lg bg-black/55 px-3 py-1.5 text-xs font-semibold text-[#dff2f7] backdrop-blur"
+        >
+          ⚙ Tuning
+        </button>
+      )}
+
       {/* control panel */}
+      {showPanel && (
       <div className="absolute left-3 top-3 z-10 w-72 space-y-3 rounded-xl bg-black/55 p-4 text-sm text-[#dff2f7] backdrop-blur">
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowPanel(false)}
+            className="rounded-md bg-white/10 px-2 py-0.5 text-xs text-[#cfeaf2]"
+          >
+            Hide ✕
+          </button>
+        </div>
         <div className="grid grid-cols-2 gap-1.5">
           {(Object.keys(LABELS) as CreatureKey[]).map((k) => (
             <button
@@ -78,6 +100,33 @@ export default function CreaturesDebugPage() {
           ))}
         </div>
 
+        {/* static (orientation tuning) vs motion (watch them move) */}
+        <div className="flex gap-1.5">
+          {(["static", "motion"] as DebugMode[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold capitalize transition ${
+                mode === m ? "bg-[#2e7dd1] text-white" : "bg-white/10 text-[#cfeaf2]"
+              }`}
+            >
+              {m === "static" ? "Orient" : "Motion"}
+            </button>
+          ))}
+        </div>
+
+        {mode === "motion" && (
+          <p className="rounded-lg bg-black/40 p-2 text-[11px] leading-snug text-[#9fd0dc]">
+            {isFish
+              ? "Showing the school (boids) using the saved config."
+              : `Showing ${selected === "turtle" ? TURTLE_COUNT : DUGONG_COUNT} ${
+                  selected
+                }s wandering from spread-out, non-overlapping starts. Orbit/zoom to follow them.`}
+          </p>
+        )}
+
+        {mode === "static" && (
+        <>
         <Slider label="Rotate X" value={p.rx} min={-Math.PI} max={Math.PI} step={0.01}
           onChange={(v) => set({ rx: v })} fmt={(v) => `${Math.round(v * DEG)}°`} />
         <Slider label="Rotate Y" value={p.ry} min={-Math.PI} max={Math.PI} step={0.01}
@@ -110,7 +159,10 @@ export default function CreaturesDebugPage() {
           Rotate until the nose points along the teal +Z arrow and the creature
           sits upright. Drag to orbit · scroll to zoom.
         </p>
+        </>
+        )}
       </div>
+      )}
     </main>
   );
 }

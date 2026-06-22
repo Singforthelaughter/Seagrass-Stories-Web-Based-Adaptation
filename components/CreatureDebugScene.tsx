@@ -5,9 +5,13 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useFBX, useTexture, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
 import { SkeletonUtils } from "three-stdlib";
-import { buildFishGeometry } from "./scene/FishSchool";
+import { buildFishGeometry, FishSchool } from "./scene/FishSchool";
+import { AnimatedCreatures } from "./scene/AnimatedCreatures";
 import { JUVENILE_FISH, SCAD_FISH, TURTLE, DUGONG } from "./scene/creatures";
 import type { FishModel, CreatureModel } from "./scene/creatures";
+import { TURTLE_COUNT, DUGONG_COUNT } from "@/lib/gameConfig";
+
+export type DebugMode = "static" | "motion";
 
 /**
  * Standalone debug view for a single creature: renders it at the origin facing
@@ -109,29 +113,53 @@ function DebugCreature({ config, p }: { config: CreatureModel; p: DebugParams })
 export function CreatureDebugScene({
   selected,
   params,
+  mode = "static",
 }: {
   selected: CreatureKey;
   params: DebugParams;
+  mode?: DebugMode;
 }) {
   const isFish = selected === "juvenile" || selected === "scad";
+  const wide = mode === "motion"; // pull the camera back to watch them roam
   return (
-    <Canvas shadows camera={{ position: [3, 2, 5], fov: 45 }} gl={{ antialias: true }}>
+    <Canvas
+      key={mode}
+      shadows
+      camera={{ position: wide ? [0, 60, 110] : [3, 2, 5], fov: 45, far: 500 }}
+      gl={{ antialias: true }}
+    >
       <color attach="background" args={["#0b3547"]} />
       <ambientLight intensity={0.8} />
       <directionalLight position={[5, 8, 5]} intensity={1.4} castShadow />
-      <gridHelper args={[10, 10, "#2e6b80", "#1b4456"]} />
-      {/* forward reference: the +Z direction the creature should face */}
-      <arrowHelper args={[new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), 3, "#19c6c6", 0.5, 0.3]} />
+      <gridHelper args={wide ? [200, 40, "#2e6b80", "#143844"] : [10, 10, "#2e6b80", "#1b4456"]} />
+      {/* forward reference arrow (static tuning only) */}
+      {!wide && (
+        <arrowHelper args={[new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), 3, "#19c6c6", 0.5, 0.3]} />
+      )}
 
       <Suspense fallback={null}>
-        {isFish ? (
-          <DebugFish model={FISH[selected as "juvenile" | "scad"]} p={params} />
+        {mode === "static" ? (
+          isFish ? (
+            <DebugFish model={FISH[selected as "juvenile" | "scad"]} p={params} />
+          ) : (
+            <DebugCreature config={CREATURES[selected as "turtle" | "dugong"]} p={params} />
+          )
+        ) : isFish ? (
+          <FishSchool
+            model={FISH[selected as "juvenile" | "scad"]}
+            mode={selected === "scad" ? "player" : "ahead"}
+            visible
+          />
         ) : (
-          <DebugCreature config={CREATURES[selected as "turtle" | "dugong"]} p={params} />
+          <AnimatedCreatures
+            config={CREATURES[selected as "turtle" | "dugong"]}
+            count={selected === "turtle" ? TURTLE_COUNT : DUGONG_COUNT}
+            visible
+          />
         )}
       </Suspense>
 
-      <OrbitControls makeDefault />
+      <OrbitControls makeDefault target={[0, wide ? 4 : 0, 0]} />
     </Canvas>
   );
 }

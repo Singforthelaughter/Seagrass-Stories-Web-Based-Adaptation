@@ -23,6 +23,7 @@ export const JUVENILE_FISH: FishModel = {
   normal: "/models/juvenileFish/juvenileFish_Normal.jpg",
   targetLen: 0.55,
   flip: false,
+  upright: [0, Math.PI, 0],
 };
 
 export const SCAD_FISH: FishModel = {
@@ -72,7 +73,7 @@ export const TURTLE: CreatureModel = {
   yMin: 1.6,
   yMax: 6.0,
   bound: 70,
-  upright: [0, 0, 0],
+  upright: [0, Math.PI, 0],
   yawOffset: 0,
 };
 
