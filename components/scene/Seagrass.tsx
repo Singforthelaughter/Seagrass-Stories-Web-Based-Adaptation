@@ -138,8 +138,27 @@ function Sprout({ object, position, rotY, scale, delay }: { object: THREE.Object
   )
 }
 
+/** Deterministic PRNG (mulberry32) seeded from a string, so a basket always
+ *  grows the exact same sprout layout — stable across the frequent basket-list
+ *  refreshes (realtime sync rebuilds the array each change) and identical on
+ *  every client. */
+function seededRand(seed: string) {
+  let h = 2166136261
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  let s = h >>> 0
+  return () => {
+    s = (s + 0x6d2b79f5) | 0
+    let t = Math.imul(s ^ (s >>> 15), 1 | s)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
 /** Seagrass grown around one anchor basket. */
-function Cluster({ pos, createdAt }: { pos: PlacedBasket["pos"]; createdAt: number }) {
+function Cluster({ id, pos, createdAt }: { id: string; pos: PlacedBasket["pos"]; createdAt: number }) {
   const { scenes, baseScale } = useSeagrassModels()
 
   // Play the growing SFX once, when this cluster's first sprout starts growing.
@@ -152,10 +171,13 @@ function Cluster({ pos, createdAt }: { pos: PlacedBasket["pos"]; createdAt: numb
     return () => clearTimeout(t)
   }, [createdAt])
 
+  // Seed from the basket id (not Math.random) so the layout is fixed for this
+  // basket and never shuffles when the basket list is rebuilt by the sync.
   const sprouts = useMemo(() => {
-    const rand = (a: number, b: number) => a + Math.random() * (b - a)
+    const rng = seededRand(id)
+    const rand = (a: number, b: number) => a + rng() * (b - a)
     return Array.from({ length: PER_BASKET }, (_, i) => {
-      const variant = (Math.random() < 0.5 ? 0 : 1) as 0 | 1
+      const variant = (rng() < 0.5 ? 0 : 1) as 0 | 1
       const ang = rand(0, Math.PI * 2)
       const r = rand(CLUSTER_MIN, CLUSTER_MAX)
       return {
@@ -166,7 +188,10 @@ function Cluster({ pos, createdAt }: { pos: PlacedBasket["pos"]; createdAt: numb
         delay: GROW_START_DELAY + i * GROW_STAGGER,
       }
     })
-  }, [pos, baseScale])
+    // pos[0]/pos[2] are stable values for a given id; depend on id so a new
+    // array reference from the realtime refresh doesn't recompute the layout.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, baseScale])
 
   return (
     <>
@@ -183,7 +208,7 @@ export function BasketSeagrass() {
   return (
     <>
       {baskets.map((b) => (
-        <Cluster key={b.id} pos={b.pos} createdAt={b.createdAt} />
+        <Cluster key={b.id} id={b.id} pos={b.pos} createdAt={b.createdAt} />
       ))}
     </>
   )
