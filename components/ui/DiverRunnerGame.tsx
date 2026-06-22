@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { playSfx } from "@/lib/audio";
 
 /**
  * A "play while you wait" mini-game, shown over a full-screen popup while the
@@ -118,6 +119,7 @@ function RunnerCanvas({ running }: { running: boolean }) {
     if (g.grounded) {
       g.vel = JUMP_V;
       g.grounded = false;
+      playSfx("miniGameJump");
     }
   }
 
@@ -197,6 +199,7 @@ function RunnerCanvas({ running }: { running: boolean }) {
             g.over = true;
             setOver(true);
             setBest((b) => Math.max(b, Math.floor(g.score)));
+            playSfx("miniGameHit");
             break;
           }
         }

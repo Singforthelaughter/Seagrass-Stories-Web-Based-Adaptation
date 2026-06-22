@@ -1,10 +1,11 @@
 "use client"
 
-import { useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { Clone, useGLTF } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 import { smootherstep } from "@/lib/ease"
+import { playSfx } from "@/lib/audio"
 import { useGame } from "@/lib/store"
 import type { PlacedBasket } from "@/lib/store"
 import {
@@ -138,8 +139,19 @@ function Sprout({ object, position, rotY, scale, delay }: { object: THREE.Object
 }
 
 /** Seagrass grown around one anchor basket. */
-function Cluster({ pos }: { pos: PlacedBasket["pos"] }) {
+function Cluster({ pos, createdAt }: { pos: PlacedBasket["pos"]; createdAt: number }) {
   const { scenes, baseScale } = useSeagrassModels()
+
+  // Play the growing SFX once, when this cluster's first sprout starts growing.
+  // Skip baskets that were already grown before we arrived (late joiners): only
+  // schedule if the grow-start moment is still in the (near) future/now.
+  useEffect(() => {
+    const startsIn = createdAt + GROW_START_DELAY * 1000 - Date.now()
+    if (startsIn < -250) return // already growing/grown before we saw it
+    const t = setTimeout(() => playSfx("seaGrassGrowing"), Math.max(0, startsIn))
+    return () => clearTimeout(t)
+  }, [createdAt])
+
   const sprouts = useMemo(() => {
     const rand = (a: number, b: number) => a + Math.random() * (b - a)
     return Array.from({ length: PER_BASKET }, (_, i) => {
@@ -171,7 +183,7 @@ export function BasketSeagrass() {
   return (
     <>
       {baskets.map((b) => (
-        <Cluster key={b.id} pos={b.pos} />
+        <Cluster key={b.id} pos={b.pos} createdAt={b.createdAt} />
       ))}
     </>
   )

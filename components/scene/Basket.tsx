@@ -7,6 +7,7 @@ import * as THREE from "three"
 import { useGame } from "@/lib/store"
 import type { PlacedBasket } from "@/lib/store"
 import { removeBasket } from "@/lib/multiplayer"
+import { playSfx } from "@/lib/audio"
 import { smootherstep } from "@/lib/ease"
 import { BASKET_LIFETIME, FADE_OUT_DUR } from "@/lib/gameConfig"
 
@@ -118,6 +119,8 @@ function Basket({ id, pos, createdAt, playerId }: PlacedBasket) {
   const outer = useRef<THREE.Group>(null!)
   const shadowGroup = useRef<THREE.Group>(null!)
   const removed = useRef(false)
+  const opened = useRef(false)
+  const firstFrame = useRef(true)
 
   useFrame(() => {
     // Drive all timing from createdAt (shared clock) so the drop / open / fade
@@ -137,6 +140,14 @@ function Basket({ id, pos, createdAt, playerId }: PlacedBasket) {
     const open = smootherstep(Math.min(Math.max((a - DROP_DUR - OPEN_DELAY) / OPEN_DUR, 0), 1))
     if (morphMesh) morphMesh.morphTargetInfluences![morphIndex] = open
     shadowGroup.current.scale.setScalar(open)
+    // Play the open SFX when the lid crosses half-open — but if the basket is
+    // already open on first sight (a late joiner seeing an old basket), arm
+    // silently so we don't fire a burst of sounds on load.
+    if (!opened.current && open > 0.5) {
+      opened.current = true
+      if (!firstFrame.current) playSfx("basketOpen")
+    }
+    firstFrame.current = false
     // The owner removes it from the shared world once fully faded (fires once).
     if (fade >= 1 && !removed.current) {
       removed.current = true
