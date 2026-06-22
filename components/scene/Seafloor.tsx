@@ -6,6 +6,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { smootherstep } from "@/lib/ease";
 import { useGame } from "@/lib/store";
+import { placeBasket } from "@/lib/multiplayer";
 
 /**
  * The sandy seafloor. Hidden (scale 0) during personalise, then grows in on
@@ -119,10 +120,9 @@ export function Seafloor({
 
   // Tap the seabed (while playing) to drop an anchor basket at that spot.
   const onPlace = (e: ThreeEvent<PointerEvent>) => {
-    const { phase, placeBasket } = useGame.getState();
-    if (phase !== "playing") return;
+    if (useGame.getState().phase !== "playing") return;
     e.stopPropagation();
-    // No-op if the batch is spent / cooling down (handled inside placeBasket).
+    // Routed: budget-gated, then written to the shared world (DB) or locally.
     placeBasket([e.point.x, 0, e.point.z]);
   };
 

@@ -12,7 +12,7 @@ import { Baskets } from "./scene/Basket";
 import { FishSchool } from "./scene/FishSchool";
 import { SunRays } from "./scene/SunRays";
 import { EmoteBubble } from "./scene/EmoteBubble";
-import { NpcDiver } from "./scene/NpcDiver";
+import { RemotePlayers } from "./scene/RemotePlayers";
 import { WaterDistortion } from "./scene/WaterDistortion";
 import { Diver } from "./scene/Diver";
 import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
@@ -220,7 +220,6 @@ export function GameExperience() {
   const low = tier === "low"; // weak phones: trim shadows, post FX, dpr, caustics
   // Marine life returns as the meadow recovers, each at its own health threshold.
   const health = useGame((s) => s.health);
-  const phase = useGame((s) => s.phase);
 
   return (
     <Canvas
@@ -256,12 +255,9 @@ export function GameExperience() {
       </Seafloor>
       <DiverRig controls={controls} progress={progress} />
       <EmoteBubble />
-      {/* A stand-in "other player" to preview remote emotes (during gameplay). */}
-      {phase === "playing" && (
-        <Suspense fallback={null}>
-          <NpcDiver />
-        </Suspense>
-      )}
+      {/* Other players: connects realtime, syncs our pose/emote/texture, and
+          renders every remote diver. */}
+      <RemotePlayers />
       {/* Anchor baskets the player taps onto the seafloor. Wrapped so loading
           the basket assets never bubbles up to the page-level "Descending"
           fallback (it would flash on the first placement otherwise). */}

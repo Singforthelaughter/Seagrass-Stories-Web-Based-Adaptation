@@ -18,8 +18,15 @@ const healthFor = (numBaskets: number) =>
 
 export type Vec3 = [number, number, number];
 
-/** A placed anchor basket. */
-export type PlacedBasket = { id: string; pos: Vec3 };
+/** A placed anchor basket. `createdAt` (ms epoch) drives the shared drop / open
+ *  / lifetime animation so it's consistent across clients; `playerId` is the
+ *  owner (only the owner removes it from the shared world at end of life). */
+export type PlacedBasket = {
+  id: string;
+  pos: Vec3;
+  createdAt: number;
+  playerId: string | null;
+};
 
 /** Sun-ray tuning parameters (cylinder-particle system). */
 export type RayParams = {
@@ -78,8 +85,14 @@ interface GameState {
   basketCooldownUntil: number;
   /** Whether the player has placed their first basket (hides the tap hint). */
   firstBasketPlaced: boolean;
-  /** Try to place a basket; no-op if the batch is empty or cooling down. */
-  placeBasket: (pos: Vec3) => void;
+  /** Spend one basket from the batch (budget + cooldown gate). Returns whether
+   *  the placement is allowed. Actual basket creation is handled by the caller
+   *  (DB insert in multiplayer, or addLocalBasket offline). */
+  tryConsumeBasket: () => boolean;
+  /** Add a basket locally (offline / single-player fallback). */
+  addLocalBasket: (pos: Vec3) => void;
+  /** Replace the whole basket list (e.g. from the realtime world sync). */
+  setBaskets: (baskets: PlacedBasket[]) => void;
   /** Remove a basket once it has lived out its lifetime + fade. */
   removeBasket: (id: string) => void;
   /** Refill the batch if the cooldown has elapsed (called by the HUD ticker). */
@@ -107,7 +120,7 @@ interface GameState {
   diverForward: THREE.Vector3;
 }
 
-export const useGame = create<GameState>((set) => ({
+export const useGame = create<GameState>((set, get) => ({
   phase: "personalise",
   setPhase: (p) => set({ phase: p }),
   playerId: null,
@@ -130,23 +143,30 @@ export const useGame = create<GameState>((set) => ({
   basketsLeft: BASKET_BATCH,
   basketCooldownUntil: 0,
   firstBasketPlaced: false,
-  placeBasket: (pos) =>
+  tryConsumeBasket: () => {
+    const s = get();
+    const now = Date.now();
+    // Reject while cooling down or once the batch is spent.
+    if (s.basketCooldownUntil && now < s.basketCooldownUntil) return false;
+    if (s.basketsLeft <= 0) return false;
+    const left = s.basketsLeft - 1;
+    set({
+      basketsLeft: left,
+      firstBasketPlaced: true,
+      // Spending the last basket of the batch starts the cooldown.
+      basketCooldownUntil: left === 0 ? now + BASKET_COOLDOWN * 1000 : s.basketCooldownUntil,
+    });
+    return true;
+  },
+  addLocalBasket: (pos) =>
     set((s) => {
-      const now = Date.now();
-      // Reject while cooling down or once the batch is spent.
-      if (s.basketCooldownUntil && now < s.basketCooldownUntil) return s;
-      if (s.basketsLeft <= 0) return s;
-      const left = s.basketsLeft - 1;
-      return {
-        baskets: [...s.baskets, { id: crypto.randomUUID(), pos }],
-        basketsLeft: left,
-        firstBasketPlaced: true,
-        health: healthFor(s.baskets.length + 1),
-        // Spending the last basket of the batch starts the cooldown.
-        basketCooldownUntil:
-          left === 0 ? now + BASKET_COOLDOWN * 1000 : s.basketCooldownUntil,
-      };
+      const baskets = [
+        ...s.baskets,
+        { id: crypto.randomUUID(), pos, createdAt: Date.now(), playerId: s.playerId },
+      ];
+      return { baskets, health: healthFor(baskets.length) };
     }),
+  setBaskets: (baskets) => set({ baskets, health: healthFor(baskets.length) }),
   removeBasket: (id) =>
     set((s) => {
       const baskets = s.baskets.filter((b) => b.id !== id);
