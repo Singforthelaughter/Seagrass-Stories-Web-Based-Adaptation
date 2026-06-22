@@ -5,6 +5,10 @@
       "Bash(echo \"=== project skills ===\"; ls -la .claude/skills/ 2>/dev/null; find .claude -name \"SKILL.md\" 2>/dev/null; echo \"=== user skills ===\"; ls ~/.claude/skills/ 2>/dev/null)",
       "Read(//Users/boon/.claude/**)",
       "Edit(/.claude/skills/game-cover/**)"
+    ],
+    "additionalDirectories": [
+      "/tmp",
+      "/private/tmp"
     ]
   }
 }

@@ -65,13 +65,20 @@ def net_hint(err):
 
 
 def create_prediction(model, payload, token):
-    """Start a prediction. `Prefer: wait` blocks up to ~60s so we often skip polling."""
+    """Start a prediction. `Prefer: wait` blocks up to ~60s so we often skip polling.
+
+    Some networks/proxies kill that long-held connection (RemoteDisconnected);
+    if the waited create fails, fall back to a plain create and let wait_for()
+    poll the prediction instead."""
     if ":" in model:
-        name, version = model.split(":", 1)
-        return _request(f"{API}/predictions", token, "POST",
-                        {"version": version, "input": payload}, {"Prefer": "wait"})
-    return _request(f"{API}/models/{model}/predictions", token, "POST",
-                    {"input": payload}, {"Prefer": "wait"})
+        _, version = model.split(":", 1)
+        url, body = f"{API}/predictions", {"version": version, "input": payload}
+    else:
+        url, body = f"{API}/models/{model}/predictions", {"input": payload}
+    try:
+        return _request(url, token, "POST", body, {"Prefer": "wait"})
+    except Exception:
+        return _request(url, token, "POST", body)
 
 
 def wait_for(pred, token, timeout=300):

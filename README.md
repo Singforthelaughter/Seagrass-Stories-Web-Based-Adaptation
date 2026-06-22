@@ -1,6 +1,6 @@
 # Seagrass Stories
 
-**Seagrass Stories** is a calm, hopeful underwater game you play in your browser or on a tablet. You're a **scuba diver** helping bring a damaged seafloor back to life. Plant seagrass, watch your meadow grow, and slowly the fish, turtles, and other sea creatures come back.
+**Seagrass Stories** is a calm, hopeful underwater game you play in your browser or on a tablet. You're a **scuba diver** helping bring a damaged seafloor back to life. Plant seagrass, watch your meadow grow, and slowly the fish, turtles, dugongs, and other sea creatures come back.
 
 It's a **shared world**: everyone who's online is diving in the same ocean at the same time, helping each other tend the meadow. The world keeps living even when you're away — leave, come back later, and see how it's changed. There's no chat; players simply send **emoji** to say hello, thank you, or cheer each other on — and because there's no free text, there's nothing to moderate, which keeps the world safe for younger players.
 
@@ -19,14 +19,15 @@ It's a **shared world**: everyone who's online is diving in the same ocean at th
 ## How it plays (the quick version)
 
 1. 🌊 **Start** — tap "Start Play" on a calm underwater title screen.
-2. 🤿 **Make it yours** — name your diver and design their wetsuit (an AI turns your idea into the artwork).
+2. 🤿 **Make it yours** — design your diver's wetsuit by typing an idea; an AI turns it into the artwork. While it renders, there's a quick arcade mini-game to play.
 3. ⬇️ **Dive in** — drop into the shared meadow and see other divers already there.
-4. 👆 **Swim** — tap the seafloor to glide around.
-5. 🧺 **Plant** — place an anchor basket, then plant seagrass in it.
-6. 🌱 **Tend** — your seagrass grows, but the ocean is always wearing it down, so keep planting to stay ahead.
-7. 🐠 **Life returns** — as the meadow gets healthier, fish, turtles, and other animals come back.
-8. 🤝 **Together** — more divers means more hands helping; say hello with emoji.
-9. 🔁 **Come back anytime** — the world keeps living while you're gone, so it's always changed when you return.
+4. 🕹️ **Swim** — use the on-screen joystick to glide around the meadow.
+5. 🧺 **Plant** — tap the seafloor to drop an anchor basket; seagrass sprouts and grows around it.
+6. 🌱 **Tend** — baskets come in small batches with a short cooldown, and they fade over time, so keep planting to stay ahead.
+7. 🐠 **Life returns** — as the meadow gets healthier, fish schools, sea turtles, and dugongs come back.
+8. 💡 **Learn as you go** — every time the meadow improves, a bite-size real-world sea fact pops up.
+9. 🤝 **Together** — more divers means more hands helping; say hello with emoji.
+10. 🔁 **Come back anytime** — the world keeps living while you're gone, so it's always changed when you return.
 
 For the full beat-by-beat version, see the detailed journey below.
 
@@ -39,32 +40,32 @@ Each numbered step is a beat in the player's experience, written to map directly
 ### 1. Arrive — Splash screen
 The player lands on a calm underwater title screen: "Seagrass Stories", soft light shafts, a single **Start Play** button. One clear call to action, no menus.
 
-### 2. Personalise — Name your diver
-The player **enters a username**. A 3D scuba diver slowly rotates in preview.
+### 2. Personalise — Meet your diver
+A 3D scuba diver slowly rotates in preview. The player can **drag to rotate** and **pinch to zoom** to look around their diver up close.
 
 ### 3. Personalise — Design the wetsuit with AI
-The player **types a prompt** (e.g. "coral reef camo", "deep-sea bioluminescence") and **taps Generate**. An AI image becomes the diver's wetsuit **texture**, applied live on the rotating preview. The player can **regenerate** for a new look or **pick a saved texture** from their history. **Tap Confirm** to lock the look.
+The player **types a prompt** (e.g. "coral reef camo", "deep-sea bioluminescence") and **taps Generate**. While the AI works (~20s), a quick **arcade mini-game** pops up — a diver hopping over passing sea creatures — to pass the wait. The result becomes the diver's wetsuit **texture**, applied live on the rotating preview. The player can **regenerate** for a new look or **pick a saved design** from their history, then **tap Dive in**.
 
 ### 4. Descend — Enter the shared meadow
-The diver drops into the underwater seagrass meadow. The player sees the current **state of the world** — some healthy patches, some bare seabed — and **other divers** already swimming nearby. A short message: "whoever's online is here with you."
+The diver drops into the underwater seagrass meadow, with gentle music and the soft rhythm of the diver's own breathing. The player sees the current **state of the world** — some healthy patches, some bare seabed — and **other divers** already swimming nearby. A short message: "whoever's online is here with you."
 
 ### 5. Learn to move
-A prompt invites the player to **tap/click the seafloor**. The diver glides to that spot; the camera follows. The player gets a feel for swimming around the meadow.
+An on-screen **joystick** appears. The player **drags the joystick** to swim around the meadow; the camera follows. (Tapping the seafloor is reserved for planting — see next.)
 
 ### 6. Place an anchor basket
-Tutorial prompt: "Tap the seafloor to place an anchor basket." The player **taps an open patch of seabed**, a ghost preview appears, and **confirms**. A woven, natural-material **anchor basket** settles on the sand — the foundation seagrass needs to take root.
+A first-time hint reads "Tap the seafloor to plant seagrass." The player **taps an open patch of seabed** and a woven, natural-material **anchor basket** drops onto the sand. Baskets come in **small batches**; once the batch is spent, a short **cooldown** ticks down (shown in a corner) before more become available.
 
-### 7. Plant seagrass
-Prompt: "Tap your basket to plant seagrass." The player **taps the deployed anchor**, and young seagrass blades sprout from it.
+### 7. Seagrass takes root
+Once a basket settles and opens, **young seagrass automatically sprouts and grows around it**, swaying in the current. There's no separate planting step — dropping the basket *is* the planting.
 
 ### 8. Watch it grow
-The seagrass **slowly grows** over time, swaying in the current. The player sees their patch maturing — a small, satisfying sign of progress.
+The seagrass **grows in over a few seconds**. Each time the meadow's health rises, a short **real-world sea fact** flashes on screen (why seagrass matters; how Tunisia's Kerkennah community replants it with palm-leaf baskets) — learning woven into play, never homework.
 
 ### 9. Feel the pressure — keep the habitat alive
-An **ecosystem-health meter** shows the meadow's condition. The environment **constantly decays**: if seagrass isn't planted faster than it dies back, the water turns murkier and the seabed pales. The player must **keep placing baskets and planting** to stay ahead of the decline.
+A minimal **ecosystem-health meter** shows the meadow's condition, driven by how much living seagrass there is. Baskets and their seagrass **fade away after a while**, so health slips if you stop. The player must **keep placing baskets** to stay ahead of the decline.
 
 ### 10. Recovery — life returns
-As enough healthy seagrass accumulates and health rises past thresholds, **marine animals return**: fish schools, a sea turtle, a seahorse, a crab. The meadow visibly comes alive — the reward for tending it.
+As health rises past thresholds, **marine animals return**: schools of fish, sea turtles, and dugongs glide through the meadow. Each gently **fades in** rather than popping up — the reward for tending the habitat.
 
 ### 11. Better together
 **More divers online = more hands planting**, so the habitat is easier to sustain as a group. (No magic bonus — the help is simply other real players doing the work alongside you.)
@@ -84,12 +85,12 @@ When the player leaves, the **world keeps simulating**. Seagrass keeps growing, 
 A condensed version for a single wide storyboard strip (use the `oceanx-storyboards` skill, scuba-diver actor, line-art style):
 
 1. **Start** — splash screen, diver taps "Start Play"
-2. **Personalise** — diver + username + AI wetsuit prompt → generated texture
+2. **Personalise** — diver preview + AI wetsuit prompt → generated texture (mini-game while it renders)
 3. **Descend** — diver enters the meadow, other divers nearby
-4. **Place** — tap seafloor → anchor basket settles on the sand
-5. **Plant** — tap basket → seagrass sprouts
-6. **Tend** — seagrass grows; ecosystem-health meter; decay pressure
-7. **Recover** — healthy meadow, fish/turtle/seahorse return
+4. **Swim** — on-screen joystick; diver glides over the seabed
+5. **Plant** — tap seafloor → anchor basket drops and seagrass sprouts around it
+6. **Tend** — meadow grows; health meter; a sea fact flashes; baskets fade so keep planting
+7. **Recover** — healthy meadow, fish schools, turtles and dugongs return
 8. **Together & away** — divers exchange emoji; world keeps living when they leave
 
 ---
@@ -102,7 +103,7 @@ Concept photography of real players using Seagrass Stories on phone, tablet, and
 | --- | --- |
 | ![A child personalising their diver on a tablet](skills/oceanx-scene-shots/assets/output/seagrass-game/01-personalise.png) | ![A player tapping the screen to place a basket and plant seagrass](skills/oceanx-scene-shots/assets/output/seagrass-game/02-place-plant.png) |
 | **Life returns** | **Playing together** |
-| ![Two kids delighted as marine life returns to the meadow](skills/oceanx-scene-shots/assets/output/seagrass-game/03-life-returns.png) | ![Two friends each on their phone, greeting each other in-game with emoji](skills/oceanx-scene-shots/assets/output/seagrass-game/04-together.png) |
+| ![Two kids delighted as fish schools, turtles and dugongs return to the meadow](skills/oceanx-scene-shots/assets/output/seagrass-game/03-life-returns.png) | ![Two friends each on their phone, greeting each other in-game with emoji](skills/oceanx-scene-shots/assets/output/seagrass-game/04-together.png) |
 
 ---
 
