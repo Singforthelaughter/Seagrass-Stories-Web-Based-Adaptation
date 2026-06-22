@@ -12,7 +12,7 @@ import { useGame } from "@/lib/store";
  */
 
 const EMOTE_DURATION = 3000; // ms the emote stays up
-const HEIGHT = 2.2; // world units above the diver
+const HEIGHT = 0.5; // world units above the diver's head
 
 export function EmoteBubble() {
   const group = useRef<THREE.Group>(null!);
@@ -29,8 +29,8 @@ export function EmoteBubble() {
 
   useFrame(() => {
     if (!group.current) return;
-    const d = useGame.getState().diverPos;
-    group.current.position.set(d.x, d.y + HEIGHT, d.z);
+    const h = useGame.getState().diverHeadPos; // live head world position
+    group.current.position.set(h.x, h.y + HEIGHT, h.z);
   });
 
   // The group is always mounted (stable ref for the frame loop); only the emoji

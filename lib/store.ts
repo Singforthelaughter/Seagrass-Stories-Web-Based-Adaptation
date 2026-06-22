@@ -99,6 +99,9 @@ interface GameState {
    * Read by other systems (e.g. the fish school) that need to avoid the diver.
    */
   diverPos: THREE.Vector3;
+  /** The diver's live HEAD world position (mutated in place by the Diver each
+   *  frame). Used to anchor the emote speech bubble to the head. */
+  diverHeadPos: THREE.Vector3;
 }
 
 export const useGame = create<GameState>((set) => ({
@@ -154,6 +157,7 @@ export const useGame = create<GameState>((set) => ({
       return s;
     }),
   diverPos: new THREE.Vector3(),
+  diverHeadPos: new THREE.Vector3(),
   health: healthFor(0), // starting (damaged) meadow
   setHealth: (h) => set({ health: Math.max(0, Math.min(1, h)) }),
   rays: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import { useFBX, useTexture, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
 import { useGame } from "@/lib/store";
@@ -43,7 +44,17 @@ export function Diver({
   const fbx = useFBX(MODEL);
   const { actions, names } = useAnimations(fbx.animations, fbx);
   const suitMatRef = useRef<THREE.MeshStandardMaterial | null>(null);
+  const headRef = useRef<THREE.Object3D | null>(null); // the "Head" bone
   const suitTextureUrl = useGame((s) => s.suitTextureUrl);
+
+  // Publish the head bone's live world position so the emote bubble can anchor
+  // to it (accounts for the diver's swim/lean + animation).
+  useFrame(() => {
+    const h = headRef.current;
+    if (!h) return;
+    h.updateWorldMatrix(true, false);
+    h.getWorldPosition(useGame.getState().diverHeadPos);
+  });
 
   // Auto-play the model's baked animation (the first clip), looped.
   useEffect(() => {
@@ -108,6 +119,8 @@ export function Diver({
     suitMatRef.current = suitMat;
 
     fbx.traverse((child) => {
+      if (child.name === "Head") headRef.current = child; // grab the head bone
+
       const mesh = child as THREE.Mesh;
       if (!mesh.isMesh) return;
       mesh.castShadow = true;
