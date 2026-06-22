@@ -6,7 +6,7 @@ import { useFBX, useTexture } from "@react-three/drei"
 import * as THREE from "three"
 import { useQualityTier } from "@/lib/useQualityTier"
 import { useGame } from "@/lib/store"
-import { CREATURE_FADE_IN, CREATURE_FADE_OUT } from "@/lib/gameConfig"
+import { CREATURE_FADE_IN, CREATURE_FADE_OUT, FISH_COUNT, FISH_COUNT_LOW } from "@/lib/gameConfig"
 import type { FishModel } from "./creatures"
 
 /**
@@ -141,7 +141,7 @@ export function FishSchool({
   visible?: boolean
 }) {
   const tier = useQualityTier()
-  const count = tier === "low" ? 40 : 120
+  const count = tier === "low" ? FISH_COUNT_LOW : FISH_COUNT
   const mesh = useRef<THREE.InstancedMesh>(null!)
   const { camera } = useThree()
 

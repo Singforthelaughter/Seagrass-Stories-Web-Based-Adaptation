@@ -51,3 +51,7 @@ export const CREATURE_FADE_OUT = 4.0
 /** How many turtles / dugongs spawn once their threshold is reached. */
 export const TURTLE_COUNT = 3
 export const DUGONG_COUNT = 4
+
+/** Fish per school — full quality, and the trimmed count on low-end phones. */
+export const FISH_COUNT = 60
+export const FISH_COUNT_LOW = 24
