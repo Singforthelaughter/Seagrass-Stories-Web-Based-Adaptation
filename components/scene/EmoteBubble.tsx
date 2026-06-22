@@ -40,11 +40,8 @@ export function EmoteBubble() {
       {emote && (
         <Html center distanceFactor={12} zIndexRange={[20, 0]}>
           {/* key re-mounts so the pop animation replays for repeat emotes */}
-          <div
-            key={emoteAt}
-            className="emote-pop pointer-events-none select-none text-5xl drop-shadow-lg"
-          >
-            {emote}
+          <div key={emoteAt} className="emote-pop pointer-events-none select-none">
+            <div className="emote-bubble">{emote}</div>
           </div>
         </Html>
       )}
