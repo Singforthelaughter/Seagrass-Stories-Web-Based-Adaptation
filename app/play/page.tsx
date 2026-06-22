@@ -10,6 +10,7 @@ import { RayTuner } from "@/components/ui/RayTuner";
 import { BasketHUD } from "@/components/ui/BasketHUD";
 import { HealthBar } from "@/components/ui/HealthBar";
 import { EmoteBar } from "@/components/ui/EmoteBar";
+import { DiverRunnerGame } from "@/components/ui/DiverRunnerGame";
 
 // Three.js touches the DOM/WebGL — load the canvas client-side only.
 const GameExperience = dynamic(
@@ -84,6 +85,10 @@ export default function PlayPage() {
   return (
     <main className="relative h-full w-full overflow-hidden bg-[#04161f]">
       <GameExperience />
+
+      {/* Mini-game popup: auto-opens while the wetsuit texture generates and
+          closes once it's applied. */}
+      <DiverRunnerGame open={generating} />
 
       <Link
         href="/"
