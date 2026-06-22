@@ -28,23 +28,26 @@ export function EmoteBubble() {
   }, [emote, emoteAt, setEmote]);
 
   useFrame(() => {
+    if (!group.current) return;
     const d = useGame.getState().diverPos;
     group.current.position.set(d.x, d.y + HEIGHT, d.z);
   });
 
-  if (!emote) return null;
-
+  // The group is always mounted (stable ref for the frame loop); only the emoji
+  // is mounted on demand.
   return (
     <group ref={group}>
-      <Html center distanceFactor={12} zIndexRange={[20, 0]}>
-        {/* key re-mounts so the pop animation replays for repeat emotes */}
-        <div
-          key={emoteAt}
-          className="emote-pop pointer-events-none select-none text-5xl drop-shadow-lg"
-        >
-          {emote}
-        </div>
-      </Html>
+      {emote && (
+        <Html center distanceFactor={12} zIndexRange={[20, 0]}>
+          {/* key re-mounts so the pop animation replays for repeat emotes */}
+          <div
+            key={emoteAt}
+            className="emote-pop pointer-events-none select-none text-5xl drop-shadow-lg"
+          >
+            {emote}
+          </div>
+        </Html>
+      )}
     </group>
   );
 }
