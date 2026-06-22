@@ -10,7 +10,7 @@ export const BASKET_BATCH = 3
 export const BASKET_COOLDOWN = 15
 
 /** Seconds a basket (and the seagrass grown on it) stays before it disappears. */
-export const BASKET_LIFETIME = 30
+export const BASKET_LIFETIME = 60
 
 /** Seconds the fade-out animation runs before the objects are removed. */
 export const FADE_OUT_DUR = 1.0
