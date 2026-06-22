@@ -60,3 +60,4 @@ create policy "textures: self write" on public.diver_textures
 insert into storage.buckets (id, name, public)
 values ('diver-textures', 'diver-textures', true)
 on conflict (id) do nothing;
+
