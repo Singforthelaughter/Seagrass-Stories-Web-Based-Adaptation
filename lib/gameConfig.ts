@@ -40,3 +40,14 @@ export const TURTLE_HEALTH = 0.85;
 
 /** Dugong (model TBD). */
 export const DUGONG_HEALTH = 1.0;
+
+/** Seconds for a creature to fade IN when it first appears. */
+export const CREATURE_FADE_IN = 1.6;
+
+/** Seconds for a creature to fade OUT when its health threshold is lost.
+ *  Slower than the fade-in, so they drift away gently rather than vanishing. */
+export const CREATURE_FADE_OUT = 4.0;
+
+/** How many turtles / dugongs spawn once their threshold is reached. */
+export const TURTLE_COUNT = 3;
+export const DUGONG_COUNT = 4;

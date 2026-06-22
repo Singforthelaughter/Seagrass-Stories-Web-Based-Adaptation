@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { EffectComposer } from "@react-three/postprocessing";
@@ -17,11 +17,16 @@ import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
 import { useGame } from "@/lib/store";
 import { useQualityTier } from "@/lib/useQualityTier";
 import { smootherstep as smooth } from "@/lib/ease";
+import { AnimatedCreatures } from "./scene/AnimatedCreatures";
+import { JUVENILE_FISH, SCAD_FISH, TURTLE, DUGONG } from "./scene/creatures";
 import {
   FISH_SCHOOL_HEALTH,
   FISH_SCHOOL_2_HEALTH,
   TURTLE_HEALTH,
   DUGONG_HEALTH,
+  TURTLE_COUNT,
+  DUGONG_COUNT,
+  CREATURE_FADE_OUT,
 } from "@/lib/gameConfig";
 
 const WATER_COLOR = "#0b3547";
@@ -178,6 +183,30 @@ function Controls({
   );
 }
 
+/**
+ * Keeps a creature mounted while it fades out: once `show` flips false the child
+ * is told to fade (visible=false) and is only unmounted CREATURE_FADE_OUT later,
+ * so it drifts away gently instead of popping out of existence.
+ */
+function Creature({
+  show,
+  children,
+}: {
+  show: boolean;
+  children: (visible: boolean) => React.ReactNode;
+}) {
+  const [mounted, setMounted] = useState(show);
+  useEffect(() => {
+    if (show) {
+      setMounted(true);
+      return;
+    }
+    const t = setTimeout(() => setMounted(false), CREATURE_FADE_OUT * 1000);
+    return () => clearTimeout(t);
+  }, [show]);
+  return mounted ? <>{children(show)}</> : null;
+}
+
 export function GameExperience() {
   const controls = useRef<OrbitControlsImpl | null>(null);
   const progress = useRef(0); // dive-in transition: 0 = personalise, 1 = playing
@@ -227,12 +256,22 @@ export function GameExperience() {
         {/* New growth sprouts in around each placed basket over time. */}
         <BasketSeagrass />
       </Suspense>
-      {/* Marine life returns as the meadow recovers, each at its own threshold. */}
-      {health >= FISH_SCHOOL_HEALTH && <FishSchool mode="ahead" />}
-      {health >= FISH_SCHOOL_2_HEALTH && <FishSchool mode="player" color="#7fd4e6" />}
-      {/* Turtle & dugong return at higher health — models to be added later. */}
-      {health >= TURTLE_HEALTH && null /* <Turtle /> */}
-      {health >= DUGONG_HEALTH && null /* <Dugong /> */}
+      {/* Marine life returns as the meadow recovers, each at its own threshold.
+          Wrapped so they fade OUT (not vanish) if health drops back below it. */}
+      <Suspense fallback={null}>
+        <Creature show={health >= FISH_SCHOOL_HEALTH}>
+          {(v) => <FishSchool model={JUVENILE_FISH} mode="ahead" visible={v} />}
+        </Creature>
+        <Creature show={health >= FISH_SCHOOL_2_HEALTH}>
+          {(v) => <FishSchool model={SCAD_FISH} mode="player" visible={v} />}
+        </Creature>
+        <Creature show={health >= TURTLE_HEALTH}>
+          {(v) => <AnimatedCreatures config={TURTLE} count={TURTLE_COUNT} visible={v} />}
+        </Creature>
+        <Creature show={health >= DUGONG_HEALTH}>
+          {(v) => <AnimatedCreatures config={DUGONG} count={DUGONG_COUNT} visible={v} />}
+        </Creature>
+      </Suspense>
       <Controls controls={controls} />
 
       {/* Subtle "through water" wobble (full tier only — skipped on low-end). */}

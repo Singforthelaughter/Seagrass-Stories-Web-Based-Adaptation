@@ -1,10 +1,13 @@
-"use client";
+"use client"
 
-import { useMemo, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
-import * as THREE from "three";
-import { useQualityTier } from "@/lib/useQualityTier";
-import { useGame } from "@/lib/store";
+import { useMemo, useRef } from "react"
+import { useFrame, useThree } from "@react-three/fiber"
+import { useFBX, useTexture } from "@react-three/drei"
+import * as THREE from "three"
+import { useQualityTier } from "@/lib/useQualityTier"
+import { useGame } from "@/lib/store"
+import { CREATURE_FADE_IN, CREATURE_FADE_OUT } from "@/lib/gameConfig"
+import type { FishModel } from "./creatures"
 
 /**
  * A school of fish driven by CPU boids (Reynolds: separation / alignment /
@@ -19,285 +22,339 @@ import { useGame } from "@/lib/store";
  */
 
 // --- tuning ---------------------------------------------------------------
-const PERCEPTION = 3.0; // neighbour radius (also the grid cell size)
-const SEP_DIST = 1.7; // start pushing apart closer than this
-const MAX_SPEED = 4.3;
-const MIN_SPEED = 1.3;
-const MAX_FORCE = 16.0; // steering acceleration clamp (room for strong avoidance)
-const W_SEP = 2.3;
-const W_ALI = 1.0;
-const W_COH = 0.55;
-const W_BOUND = 2.2; // pull back when outside the school sphere
-const BOUND_RADIUS = 8.0; // larger volume → more dispersed shoal
+const PERCEPTION = 3.0 // neighbour radius (also the grid cell size)
+const SEP_DIST = 1.7 // start pushing apart closer than this
+const MAX_SPEED = 4.3
+const MIN_SPEED = 1.3
+const MAX_FORCE = 16.0 // steering acceleration clamp (room for strong avoidance)
+const W_SEP = 2.3
+const W_ALI = 1.0
+const W_COH = 0.55
+const W_BOUND = 2.2 // pull back when outside the school sphere
+const BOUND_RADIUS = 8.0 // larger volume → more dispersed shoal
 
 // Predators to flee: the diver and the camera (so fish never swim through view).
-const DIVER_AVOID = 7.5;
-const W_DIVER = 28.0;
-const CAMERA_AVOID = 8.0;
-const W_CAMERA = 32.0;
+const DIVER_AVOID = 7.5
+const W_DIVER = 28.0
+const CAMERA_AVOID = 8.0
+const W_CAMERA = 32.0
 
 // Seafloor avoidance: steer up smoothly when within FLOOR_AVOID of the seabed
 // (seafloor sits at y=0), so fish hug just above it without diving through.
-const FLOOR_Y = 0;
-const FLOOR_AVOID = 1.8; // height at which the upward push begins
-const W_FLOOR = 6.0; // strength of the avoidance
-const FLOOR_MIN = 0.5; // hard safety floor as a last resort
-
-const FISH_LENGTH = 0.6;
-const FISH_RADIUS = 0.16;
+const FLOOR_Y = 0
+const FLOOR_AVOID = 1.8 // height at which the upward push begins
+const W_FLOOR = 6.0 // strength of the avoidance
+const FLOOR_MIN = 0.5 // hard safety floor as a last resort
 
 // Camera-following: keep the school roughly this far ahead of the camera, at a
 // fixed near-floor height, but only ease the centre when the ideal point drifts
 // outside a deadzone — so the follow stays subtle, not glued to the view.
-const AHEAD_DIST = 15; // units in front of the camera
-const SCHOOL_Y = 2.2; // fixed school height above the seafloor
-const FOLLOW_DEADZONE = 5; // don't reposition until the target strays this far
-const FOLLOW_BASE = 0.4; // easing base (smaller = faster catch-up); ~1.4s settle
+const AHEAD_DIST = 15 // units in front of the camera the school drifts to keep
+const SCHOOL_Y = 2.2 // fixed school height above the seafloor
+const FOLLOW_DEADZONE = 5 // don't reposition until the target strays this far
+const FOLLOW_BASE = 0.4 // easing base (smaller = faster catch-up); ~1.4s settle
 
-const FADE_IN_DUR = 1.6; // seconds for the school to fade in when it first appears
+// How far from the camera/player the school first SPAWNS (so it appears out in
+// the distance, not on top of the player).
+const FISH_SPAWN_DIST = 40
 
-const UP_Y = new THREE.Vector3(0, 1, 0); // cone tip axis → aligned to velocity
-const _fwd = new THREE.Vector3();
-const _target = new THREE.Vector3();
+// We orient each fish's mesh so its long axis (nose) points +Z, then align that
+// to the velocity direction each frame.
+const FORWARD = new THREE.Vector3(0, 0, 1)
+const _fwd = new THREE.Vector3()
+const _target = new THREE.Vector3()
 
 // scratch vectors (one school instance; reused each frame to avoid GC churn)
-const _sep = new THREE.Vector3();
-const _ali = new THREE.Vector3();
-const _coh = new THREE.Vector3();
-const _diff = new THREE.Vector3();
-const _steer = new THREE.Vector3();
-const _toCenter = new THREE.Vector3();
-const _dir = new THREE.Vector3();
-const _away = new THREE.Vector3();
+const _sep = new THREE.Vector3()
+const _ali = new THREE.Vector3()
+const _coh = new THREE.Vector3()
+const _diff = new THREE.Vector3()
+const _steer = new THREE.Vector3()
+const _toCenter = new THREE.Vector3()
+const _dir = new THREE.Vector3()
+const _away = new THREE.Vector3()
 
-const cellKey = (x: number, y: number, z: number) =>
-  `${Math.floor(x / PERCEPTION)},${Math.floor(y / PERCEPTION)},${Math.floor(z / PERCEPTION)}`;
+const cellKey = (x: number, y: number, z: number) => `${Math.floor(x / PERCEPTION)},${Math.floor(y / PERCEPTION)},${Math.floor(z / PERCEPTION)}`
+
+/** Pull the first mesh out of an FBX, bake its transform, drop skinning, and
+ *  orient it so the fish's long axis points +Z, centred and scaled to targetLen.
+ *  Returns a plain geometry ready for an InstancedMesh. `upright` bakes an extra
+ *  rotation (radians) to correct roll / upside-down. */
+export function buildFishGeometry(
+  fbx: THREE.Group,
+  targetLen: number,
+  flip: boolean,
+  upright?: [number, number, number],
+) {
+  fbx.updateMatrixWorld(true)
+  let src: THREE.Mesh | null = null
+  fbx.traverse((o) => {
+    const m = o as THREE.Mesh
+    if (m.isMesh && !src) src = m
+  })
+  if (!src) return new THREE.BufferGeometry()
+  const geo = (src as THREE.Mesh).geometry.clone()
+  geo.applyMatrix4((src as THREE.Mesh).matrixWorld) // bake the FBX's own scale/rotation
+  geo.deleteAttribute("skinIndex") // instanced → no skeleton
+  geo.deleteAttribute("skinWeight")
+
+  // orient: map whichever axis is longest onto +Z (head/tail sign via `flip`)
+  geo.computeBoundingBox()
+  const size = new THREE.Vector3()
+  geo.boundingBox!.getSize(size)
+  if (size.x >= size.y && size.x >= size.z) geo.rotateY(Math.PI / 2)
+  else if (size.y >= size.x && size.y >= size.z) geo.rotateX(-Math.PI / 2)
+  if (flip) geo.rotateY(Math.PI)
+  if (upright) {
+    geo.rotateX(upright[0])
+    geo.rotateY(upright[1])
+    geo.rotateZ(upright[2])
+  }
+
+  // centre, then scale the long axis to targetLen
+  geo.computeBoundingBox()
+  const c = new THREE.Vector3()
+  geo.boundingBox!.getCenter(c)
+  geo.translate(-c.x, -c.y, -c.z)
+  geo.computeBoundingBox()
+  const s2 = new THREE.Vector3()
+  geo.boundingBox!.getSize(s2)
+  const scale = targetLen / Math.max(s2.x, s2.y, s2.z, 1e-4)
+  geo.scale(scale, scale, scale)
+  return geo
+}
 
 export function FishSchool({
+  model,
   mode = "ahead",
-  color = "#ff8a4c",
+  visible = true,
 }: {
+  /** The fish model to instance for this school. */
+  model: FishModel
   /**
    * "ahead"  — the school drifts to stay ahead of the camera (subtly).
    * "player" — the school roams the surroundings, centred on the player; it is
    *            NOT pulled toward the view.
    */
-  mode?: "ahead" | "player";
-  color?: string;
+  mode?: "ahead" | "player"
+  /** false = fade the school out (it stays mounted until fully faded). */
+  visible?: boolean
 }) {
-  const tier = useQualityTier();
-  const count = tier === "low" ? 40 : 120;
-  const mesh = useRef<THREE.InstancedMesh>(null!);
-  const mat = useRef<THREE.MeshStandardMaterial>(null!);
-  const age = useRef(0); // for the fade-in
-  const { camera } = useThree();
+  const tier = useQualityTier()
+  const count = tier === "low" ? 40 : 120
+  const mesh = useRef<THREE.InstancedMesh>(null!)
+  const { camera } = useThree()
+
+  const fbx = useFBX(model.fbx)
+  const [map, normal] = useTexture([model.map, model.normal])
+
+  // Build the instanced geometry + a shared material from the fish model.
+  const { geometry, material } = useMemo(() => {
+    map.colorSpace = THREE.SRGBColorSpace
+    normal.colorSpace = THREE.NoColorSpace
+    const material = new THREE.MeshStandardMaterial({
+      map,
+      normalMap: normal,
+      roughness: 0.7,
+      metalness: 0,
+      side: THREE.DoubleSide, // thin fins shouldn't be back-face culled
+      transparent: true, // for the fade-in / out
+      opacity: 0,
+    })
+    const geometry = buildFishGeometry(fbx, model.targetLen, !!model.flip, model.upright)
+    return { geometry, material }
+  }, [fbx, map, normal, model])
 
   // Initial centre: a distance AHEAD of the camera (so the school appears out in
   // front, not on top of the player), or on the player for the roaming school.
   const centerVec = useMemo(() => {
-    const c = new THREE.Vector3();
+    const c = new THREE.Vector3()
     if (mode === "player") {
-      c.copy(useGame.getState().diverPos);
+      c.copy(useGame.getState().diverPos)
     } else {
-      camera.getWorldDirection(_fwd);
-      _fwd.y = 0;
-      if (_fwd.lengthSq() < 1e-4) _fwd.set(0, 0, -1);
-      else _fwd.normalize();
-      c.copy(camera.position).addScaledVector(_fwd, AHEAD_DIST);
+      camera.getWorldDirection(_fwd)
+      _fwd.y = 0
+      if (_fwd.lengthSq() < 1e-4) _fwd.set(0, 0, -1)
+      else _fwd.normalize()
+      c.copy(camera.position).addScaledVector(_fwd, FISH_SPAWN_DIST)
     }
-    c.y = SCHOOL_Y;
-    return c;
+    c.y = SCHOOL_Y
+    return c
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [])
 
   // Simulation state, created once.
   const sim = useMemo(() => {
-    const pos: THREE.Vector3[] = [];
-    const vel: THREE.Vector3[] = [];
+    const pos: THREE.Vector3[] = []
+    const vel: THREE.Vector3[] = []
     for (let i = 0; i < count; i++) {
       // random point in a sphere around the centre
-      const r = Math.cbrt(Math.random()) * BOUND_RADIUS * 0.8;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      pos.push(
-        new THREE.Vector3(
-          centerVec.x + r * Math.sin(phi) * Math.cos(theta),
-          centerVec.y + r * Math.sin(phi) * Math.sin(theta),
-          centerVec.z + r * Math.cos(phi),
-        ),
-      );
-      const v = new THREE.Vector3(
-        Math.random() - 0.5,
-        Math.random() - 0.5,
-        Math.random() - 0.5,
-      )
-        .normalize()
-        .multiplyScalar((MIN_SPEED + MAX_SPEED) * 0.5);
-      vel.push(v);
+      const r = Math.cbrt(Math.random()) * BOUND_RADIUS * 0.8
+      const theta = Math.random() * Math.PI * 2
+      const phi = Math.acos(2 * Math.random() - 1)
+      pos.push(new THREE.Vector3(centerVec.x + r * Math.sin(phi) * Math.cos(theta), centerVec.y + r * Math.sin(phi) * Math.sin(theta), centerVec.z + r * Math.cos(phi)))
+      const v = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize().multiplyScalar((MIN_SPEED + MAX_SPEED) * 0.5)
+      vel.push(v)
     }
-    return { pos, vel, dummy: new THREE.Object3D(), grid: new Map<string, number[]>() };
-  }, [count, centerVec]);
+    return { pos, vel, dummy: new THREE.Object3D(), grid: new Map<string, number[]>() }
+  }, [count, centerVec])
 
   useFrame((_state, delta) => {
-    const dt = Math.min(delta, 0.05);
-    const { pos, vel, dummy, grid } = sim;
-    const diverPos = useGame.getState().diverPos; // live, mutated in place
-    const camPos = camera.position;
+    const dt = Math.min(delta, 0.05)
+    const { pos, vel, dummy, grid } = sim
+    const diverPos = useGame.getState().diverPos // live, mutated in place
+    const camPos = camera.position
 
-    // 0a) fade the whole school in when it first appears
-    age.current += dt;
-    if (mat.current) mat.current.opacity = Math.min(age.current / FADE_IN_DUR, 1);
+    // 0a) ease the whole school's opacity toward visible (fade in) or 0 (fade
+    //     out), each at its own rate — fade-out is the slower of the two.
+    {
+      const targetA = visible ? 1 : 0
+      const dur = visible ? CREATURE_FADE_IN : CREATURE_FADE_OUT
+      const cur = material.opacity
+      const step = dt / dur
+      material.opacity = cur < targetA ? Math.min(targetA, cur + step) : Math.max(targetA, cur - step)
+    }
 
     // 0b) move the school centre.
     if (mode === "ahead") {
       // ease toward a point ahead of the camera (subtle). Flatten the look
       // direction to keep the target near-floor, and only move once it drifts
       // past the deadzone so small camera moves don't visibly tug the school.
-      camera.getWorldDirection(_fwd);
-      _fwd.y = 0;
-      if (_fwd.lengthSq() < 1e-4) _fwd.set(0, 0, -1);
-      else _fwd.normalize();
-      _target.copy(camera.position).addScaledVector(_fwd, AHEAD_DIST);
-      _target.y = SCHOOL_Y;
+      camera.getWorldDirection(_fwd)
+      _fwd.y = 0
+      if (_fwd.lengthSq() < 1e-4) _fwd.set(0, 0, -1)
+      else _fwd.normalize()
+      _target.copy(camera.position).addScaledVector(_fwd, AHEAD_DIST)
+      _target.y = SCHOOL_Y
       if (centerVec.distanceTo(_target) > FOLLOW_DEADZONE) {
-        centerVec.lerp(_target, 1 - Math.pow(FOLLOW_BASE, dt));
+        centerVec.lerp(_target, 1 - Math.pow(FOLLOW_BASE, dt))
       }
     } else {
       // roam around the player: keep the centre on the diver (they flee the
       // diver, so the shoal forms a loose ring around them rather than crowding).
-      _target.copy(diverPos);
-      _target.y = SCHOOL_Y;
-      centerVec.lerp(_target, 1 - Math.pow(FOLLOW_BASE, dt));
+      _target.copy(diverPos)
+      _target.y = SCHOOL_Y
+      centerVec.lerp(_target, 1 - Math.pow(FOLLOW_BASE, dt))
     }
 
     // 1) rebuild the spatial hash grid
-    grid.clear();
+    grid.clear()
     for (let i = 0; i < count; i++) {
-      const p = pos[i];
-      const key = cellKey(p.x, p.y, p.z);
-      const bucket = grid.get(key);
-      if (bucket) bucket.push(i);
-      else grid.set(key, [i]);
+      const p = pos[i]
+      const key = cellKey(p.x, p.y, p.z)
+      const bucket = grid.get(key)
+      if (bucket) bucket.push(i)
+      else grid.set(key, [i])
     }
 
     // 2) steer each fish from its neighbours (27 surrounding cells)
     for (let i = 0; i < count; i++) {
-      const p = pos[i];
-      const v = vel[i];
-      _sep.set(0, 0, 0);
-      _ali.set(0, 0, 0);
-      _coh.set(0, 0, 0);
-      let n = 0;
+      const p = pos[i]
+      const v = vel[i]
+      _sep.set(0, 0, 0)
+      _ali.set(0, 0, 0)
+      _coh.set(0, 0, 0)
+      let n = 0
 
-      const cx = Math.floor(p.x / PERCEPTION);
-      const cy = Math.floor(p.y / PERCEPTION);
-      const cz = Math.floor(p.z / PERCEPTION);
+      const cx = Math.floor(p.x / PERCEPTION)
+      const cy = Math.floor(p.y / PERCEPTION)
+      const cz = Math.floor(p.z / PERCEPTION)
       for (let gx = -1; gx <= 1; gx++) {
         for (let gy = -1; gy <= 1; gy++) {
           for (let gz = -1; gz <= 1; gz++) {
-            const bucket = grid.get(`${cx + gx},${cy + gy},${cz + gz}`);
-            if (!bucket) continue;
+            const bucket = grid.get(`${cx + gx},${cy + gy},${cz + gz}`)
+            if (!bucket) continue
             for (const j of bucket) {
-              if (j === i) continue;
-              const q = pos[j];
-              const d = p.distanceTo(q);
-              if (d > PERCEPTION || d === 0) continue;
-              _ali.add(vel[j]);
-              _coh.add(q);
+              if (j === i) continue
+              const q = pos[j]
+              const d = p.distanceTo(q)
+              if (d > PERCEPTION || d === 0) continue
+              _ali.add(vel[j])
+              _coh.add(q)
               if (d < SEP_DIST) {
-                _diff.subVectors(p, q).divideScalar(d * d); // stronger when closer
-                _sep.add(_diff);
+                _diff.subVectors(p, q).divideScalar(d * d) // stronger when closer
+                _sep.add(_diff)
               }
-              n++;
+              n++
             }
           }
         }
       }
 
-      _steer.set(0, 0, 0);
+      _steer.set(0, 0, 0)
       if (n > 0) {
-        _ali.divideScalar(n).sub(v).multiplyScalar(W_ALI);
-        _coh.divideScalar(n).sub(p).multiplyScalar(W_COH);
-        _sep.multiplyScalar(W_SEP);
-        _steer.add(_ali).add(_coh).add(_sep);
+        _ali.divideScalar(n).sub(v).multiplyScalar(W_ALI)
+        _coh.divideScalar(n).sub(p).multiplyScalar(W_COH)
+        _sep.multiplyScalar(W_SEP)
+        _steer.add(_ali).add(_coh).add(_sep)
       }
 
       // soft containment: pull back toward the centre past the sphere edge
-      _toCenter.subVectors(centerVec, p);
-      const distC = _toCenter.length();
+      _toCenter.subVectors(centerVec, p)
+      const distC = _toCenter.length()
       if (distC > BOUND_RADIUS) {
-        _toCenter.multiplyScalar((W_BOUND * (distC - BOUND_RADIUS)) / BOUND_RADIUS);
-        _steer.add(_toCenter);
+        _toCenter.multiplyScalar((W_BOUND * (distC - BOUND_RADIUS)) / BOUND_RADIUS)
+        _steer.add(_toCenter)
       }
 
       // seafloor avoidance: ramp an upward push as the fish nears the seabed
-      const above = p.y - FLOOR_Y;
+      const above = p.y - FLOOR_Y
       if (above < FLOOR_AVOID) {
-        const t = 1 - Math.max(above, 0) / FLOOR_AVOID; // 0 at threshold → 1 at floor
-        _steer.y += W_FLOOR * t * t;
+        const t = 1 - Math.max(above, 0) / FLOOR_AVOID // 0 at threshold → 1 at floor
+        _steer.y += W_FLOOR * t * t
       }
 
       // flee the diver
-      _away.subVectors(p, diverPos);
-      const dD = _away.length();
+      _away.subVectors(p, diverPos)
+      const dD = _away.length()
       if (dD > 1e-3 && dD < DIVER_AVOID) {
-        const t = 1 - dD / DIVER_AVOID;
-        _steer.addScaledVector(_away.divideScalar(dD), W_DIVER * t * t);
+        const t = 1 - dD / DIVER_AVOID
+        _steer.addScaledVector(_away.divideScalar(dD), W_DIVER * t * t)
       }
 
       // flee the camera (so fish never swim into the viewer's face)
-      _away.subVectors(p, camPos);
-      const dC = _away.length();
+      _away.subVectors(p, camPos)
+      const dC = _away.length()
       if (dC > 1e-3 && dC < CAMERA_AVOID) {
-        const t = 1 - dC / CAMERA_AVOID;
-        _steer.addScaledVector(_away.divideScalar(dC), W_CAMERA * t * t);
+        const t = 1 - dC / CAMERA_AVOID
+        _steer.addScaledVector(_away.divideScalar(dC), W_CAMERA * t * t)
       }
 
       // clamp steering, integrate velocity, clamp speed
-      if (_steer.lengthSq() > MAX_FORCE * MAX_FORCE) _steer.setLength(MAX_FORCE);
-      v.addScaledVector(_steer, dt);
-      const sp = v.length();
-      if (sp > MAX_SPEED) v.setLength(MAX_SPEED);
-      else if (sp < MIN_SPEED) v.setLength(MIN_SPEED);
+      if (_steer.lengthSq() > MAX_FORCE * MAX_FORCE) _steer.setLength(MAX_FORCE)
+      v.addScaledVector(_steer, dt)
+      const sp = v.length()
+      if (sp > MAX_SPEED) v.setLength(MAX_SPEED)
+      else if (sp < MIN_SPEED) v.setLength(MIN_SPEED)
 
-      p.addScaledVector(v, dt);
+      p.addScaledVector(v, dt)
 
       // hard safety floor (the avoidance force above does the real work)
       if (p.y < FLOOR_MIN) {
-        p.y = FLOOR_MIN;
-        if (v.y < 0) v.y = 0;
+        p.y = FLOOR_MIN
+        if (v.y < 0) v.y = 0
       }
     }
 
     // 3) write instance matrices (point the cone tip / head along velocity)
     for (let i = 0; i < count; i++) {
-      const p = pos[i];
-      _dir.copy(vel[i]).normalize();
-      dummy.position.copy(p);
-      dummy.quaternion.setFromUnitVectors(UP_Y, _dir);
-      dummy.scale.set(1, 1, 1);
-      dummy.updateMatrix();
-      mesh.current.setMatrixAt(i, dummy.matrix);
+      const p = pos[i]
+      _dir.copy(vel[i]).normalize()
+      dummy.position.copy(p)
+      dummy.quaternion.setFromUnitVectors(FORWARD, _dir)
+      dummy.scale.set(1, 1, 1)
+      dummy.updateMatrix()
+      mesh.current.setMatrixAt(i, dummy.matrix)
     }
-    mesh.current.instanceMatrix.needsUpdate = true;
-  });
+    mesh.current.instanceMatrix.needsUpdate = true
+  })
 
   return (
     <instancedMesh
       ref={mesh}
-      args={[undefined, undefined, count]}
+      args={[geometry, material, count]}
       frustumCulled={false}
       castShadow
-    >
-      <coneGeometry args={[FISH_RADIUS, FISH_LENGTH, 7]} />
-      <meshStandardMaterial
-        ref={mat}
-        color={color}
-        roughness={0.6}
-        metalness={0.1}
-        transparent
-        opacity={0}
-      />
-    </instancedMesh>
-  );
+    />
+  )
 }
