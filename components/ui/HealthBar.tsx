@@ -22,7 +22,7 @@ export function HealthBar() {
       <span aria-hidden className="text-sm">
         🌱
       </span>
-      <div className="h-2 w-32 overflow-hidden rounded-full bg-white/15">
+      <div className="h-2 w-20 overflow-hidden rounded-full bg-white/15">
         <div
           className="h-full rounded-full transition-[width,background-color] duration-500"
           style={{ width: `${pct}%`, backgroundColor: `hsl(${hue} 70% 50%)` }}

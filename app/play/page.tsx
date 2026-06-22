@@ -9,6 +9,7 @@ import { Joystick } from "@/components/ui/Joystick";
 import { RayTuner } from "@/components/ui/RayTuner";
 import { BasketHUD } from "@/components/ui/BasketHUD";
 import { HealthBar } from "@/components/ui/HealthBar";
+import { EmoteBar } from "@/components/ui/EmoteBar";
 
 // Three.js touches the DOM/WebGL — load the canvas client-side only.
 const GameExperience = dynamic(
@@ -232,6 +233,9 @@ export default function PlayPage() {
 
       {/* Gameplay controls */}
       {phase === "playing" && <Joystick />}
+
+      {/* Emoji emote picker (bottom-left) */}
+      <EmoteBar />
 
       {/* Environment health (top-centre) + basket batch / cooldown HUD (corner) */}
       <HealthBar />

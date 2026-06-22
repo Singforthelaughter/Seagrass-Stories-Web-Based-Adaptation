@@ -65,6 +65,11 @@ interface GameState {
    */
   move: [number, number];
   setMove: (x: number, y: number) => void;
+  /** Emoji emote the player is currently showing above their diver (null = none). */
+  emote: string | null;
+  /** Timestamp (ms) the current emote was triggered (re-triggers the pop anim). */
+  emoteAt: number;
+  setEmote: (e: string | null) => void;
   /** Anchor baskets the player has placed on the seafloor. */
   baskets: PlacedBasket[];
   /** Baskets still placeable in the current batch (refills after a cooldown). */
@@ -112,6 +117,9 @@ export const useGame = create<GameState>((set) => ({
   setSuitHistory: (urls) => set({ suitTextureHistory: urls }),
   move: [0, 0],
   setMove: (x, y) => set({ move: [x, y] }),
+  emote: null,
+  emoteAt: 0,
+  setEmote: (e) => set({ emote: e, emoteAt: Date.now() }),
   baskets: [],
   basketsLeft: BASKET_BATCH,
   basketCooldownUntil: 0,

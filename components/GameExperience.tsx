@@ -11,6 +11,7 @@ import { SeagrassField, BasketSeagrass } from "./scene/Seagrass";
 import { Baskets } from "./scene/Basket";
 import { FishSchool } from "./scene/FishSchool";
 import { SunRays } from "./scene/SunRays";
+import { EmoteBubble } from "./scene/EmoteBubble";
 import { WaterDistortion } from "./scene/WaterDistortion";
 import { Diver } from "./scene/Diver";
 import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
@@ -248,6 +249,7 @@ export function GameExperience() {
         <SeagrassField />
       </Seafloor>
       <DiverRig controls={controls} progress={progress} />
+      <EmoteBubble />
       {/* Anchor baskets the player taps onto the seafloor. Wrapped so loading
           the basket assets never bubbles up to the page-level "Descending"
           fallback (it would flash on the first placement otherwise). */}
