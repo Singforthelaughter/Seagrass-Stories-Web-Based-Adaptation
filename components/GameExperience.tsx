@@ -12,6 +12,7 @@ import { Baskets } from "./scene/Basket";
 import { FishSchool } from "./scene/FishSchool";
 import { SunRays } from "./scene/SunRays";
 import { EmoteBubble } from "./scene/EmoteBubble";
+import { NpcDiver } from "./scene/NpcDiver";
 import { WaterDistortion } from "./scene/WaterDistortion";
 import { Diver } from "./scene/Diver";
 import { UnderwaterEnvironment } from "./scene/UnderwaterEnvironment";
@@ -123,6 +124,10 @@ function DiverRig({
       face.current.rotation.x = SWIM_LEAN * e;
     }
 
+    // publish the diver's horizontal forward (model faces +Z at yaw 0)
+    const yaw = face.current.rotation.y;
+    useGame.getState().diverForward.set(Math.sin(yaw), 0, Math.cos(yaw));
+
     // --- camera ---
     if (playing) {
       _camGoal.set(p.x, p.y + 6, p.z + 11);
@@ -215,6 +220,7 @@ export function GameExperience() {
   const low = tier === "low"; // weak phones: trim shadows, post FX, dpr, caustics
   // Marine life returns as the meadow recovers, each at its own health threshold.
   const health = useGame((s) => s.health);
+  const phase = useGame((s) => s.phase);
 
   return (
     <Canvas
@@ -250,6 +256,12 @@ export function GameExperience() {
       </Seafloor>
       <DiverRig controls={controls} progress={progress} />
       <EmoteBubble />
+      {/* A stand-in "other player" to preview remote emotes (during gameplay). */}
+      {phase === "playing" && (
+        <Suspense fallback={null}>
+          <NpcDiver />
+        </Suspense>
+      )}
       {/* Anchor baskets the player taps onto the seafloor. Wrapped so loading
           the basket assets never bubbles up to the page-level "Descending"
           fallback (it would flash on the first placement otherwise). */}

@@ -102,6 +102,9 @@ interface GameState {
   /** The diver's live HEAD world position (mutated in place by the Diver each
    *  frame). Used to anchor the emote speech bubble to the head. */
   diverHeadPos: THREE.Vector3;
+  /** The diver's horizontal forward (facing) direction, mutated in place each
+   *  frame. Used to offset the emote bubble in front of the face. */
+  diverForward: THREE.Vector3;
 }
 
 export const useGame = create<GameState>((set) => ({
@@ -158,6 +161,7 @@ export const useGame = create<GameState>((set) => ({
     }),
   diverPos: new THREE.Vector3(),
   diverHeadPos: new THREE.Vector3(),
+  diverForward: new THREE.Vector3(0, 0, 1),
   health: healthFor(0), // starting (damaged) meadow
   setHealth: (h) => set({ health: Math.max(0, Math.min(1, h)) }),
   rays: {

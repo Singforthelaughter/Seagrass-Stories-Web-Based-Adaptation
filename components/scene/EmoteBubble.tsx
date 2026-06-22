@@ -12,7 +12,13 @@ import { useGame } from "@/lib/store";
  */
 
 const EMOTE_DURATION = 3000; // ms the emote stays up
-const HEIGHT = 0.5; // world units above the diver's head
+
+// Bubble offset from the diver's head, in world units. Tune to reposition it.
+const OFFSET = {
+  up: 0.5, // above the head
+  forward: 0.45, // in front of the face (diver's facing direction)
+  side: 0, // sideways (+ = the diver's right)
+};
 
 export function EmoteBubble() {
   const group = useRef<THREE.Group>(null!);
@@ -29,8 +35,13 @@ export function EmoteBubble() {
 
   useFrame(() => {
     if (!group.current) return;
-    const h = useGame.getState().diverHeadPos; // live head world position
-    group.current.position.set(h.x, h.y + HEIGHT, h.z);
+    const { diverHeadPos: h, diverForward: f } = useGame.getState();
+    // right vector = forward rotated -90° about Y
+    group.current.position.set(
+      h.x + f.x * OFFSET.forward + f.z * OFFSET.side,
+      h.y + OFFSET.up,
+      h.z + f.z * OFFSET.forward - f.x * OFFSET.side,
+    );
   });
 
   // The group is always mounted (stable ref for the frame loop); only the emoji
