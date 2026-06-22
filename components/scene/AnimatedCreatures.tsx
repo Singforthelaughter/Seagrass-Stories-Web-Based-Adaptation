@@ -81,7 +81,7 @@ export function AnimatedCreatures({
     while (out.length < count && attempts < count * 300) {
       attempts++;
       const ang = Math.random() * Math.PI * 2;
-      const r = (0.2 + Math.random() * 0.7) * config.bound;
+      const r = (0.05 + Math.random() * 0.5) * config.bound;
       const x = Math.cos(ang) * r;
       const z = Math.sin(ang) * r;
       if (out.some((s) => Math.hypot(s.x - x, s.z - z) < sep)) continue;

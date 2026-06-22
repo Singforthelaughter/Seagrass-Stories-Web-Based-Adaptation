@@ -72,7 +72,7 @@ export const TURTLE: CreatureModel = {
   wanderInterval: 3.5,
   yMin: 1.6,
   yMax: 6.0,
-  bound: 70,
+  bound: 26,
   upright: [0, Math.PI, 0],
   yawOffset: 0,
 };
@@ -88,7 +88,7 @@ export const DUGONG: CreatureModel = {
   wanderInterval: 4.5,
   yMin: 1.3,
   yMax: 4.0,
-  bound: 70,
+  bound: 26,
   upright: [0, 0, 0],
   yawOffset: 0,
 };
