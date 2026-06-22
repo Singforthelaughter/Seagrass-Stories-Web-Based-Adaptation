@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getServiceSupabase } from "@/lib/supabaseServer";
+import { sanitizePrompt } from "@/lib/sanitizePrompt";
 
 // Image generation can take 10–40s; give the function room.
 export const runtime = "nodejs";
@@ -21,8 +22,12 @@ const ENHANCER_SYSTEM =
   "and legs as one continuous unwrap). Rules: describe colors, patterns, surface " +
   "finish and neoprene fabric detail; keep the pattern continuous and evenly " +
   "distributed with NO focal point, NO seams, NO logos or text, NO body shapes, " +
-  "NO shadows, flat lay, evenly lit, photographic. Output ONLY the final prompt as " +
-  "a single sentence, max 60 words, no preamble.";
+  "NO shadows, flat lay, evenly lit, photographic. " +
+  "SAFETY: this is a game for young children — the design must be wholesome and " +
+  "age-appropriate, with absolutely no profanity, slurs, sexual, violent, gory, " +
+  "drug, or hateful content. If the idea contains anything inappropriate, ignore " +
+  "those parts and produce a friendly, kid-appropriate wetsuit pattern instead. " +
+  "Output ONLY the final prompt as a single sentence, max 60 words, no preamble.";
 
 /** Verify the forwarded anon access token and return the player's uid. */
 async function getUserId(req: Request): Promise<string | null> {
@@ -174,6 +179,18 @@ export async function POST(req: Request) {
   if (!prompt) {
     return NextResponse.json({ error: "Please enter a prompt." }, { status: 400 });
   }
+
+  // Kid-safety: scrub profanity / inappropriate words before the prompt goes
+  // anywhere (enhancer, image model, or saved history). If the whole idea was
+  // bad words, ask the player to try again.
+  const { clean } = sanitizePrompt(prompt);
+  if (!clean) {
+    return NextResponse.json(
+      { error: "Let's keep it kid-friendly! Try describing a fun colour or pattern for your wetsuit." },
+      { status: 400 },
+    );
+  }
+  prompt = clean;
 
   // Expand the short idea into a richer, UV-aware texture prompt; if that fails
   // or is slow, fall back to a simple template so generation still works.
