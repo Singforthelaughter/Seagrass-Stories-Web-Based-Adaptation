@@ -112,16 +112,14 @@ Concept photography of real players using Seagrass Stories on phone, tablet, and
 | Layer | Technology | Notes |
 | --- | --- | --- |
 | **Framework** | [Next.js 16](https://nextjs.org/) (App Router) + [React 19](https://react.dev/) | TypeScript, built with Turbopack |
-| **Language** | [TypeScript 5](https://www.typescriptlang.org/) | strict typing across app/components/lib |
-| **3D engine** | [Three.js](https://threejs.org/) `r184` | WebGL rendering |
-| **3D / React** | [React Three Fiber 9](https://r3f.docs.pmnd.rs/) + [drei 10](https://drei.docs.pmnd.rs/) | declarative scene, `useFBX`/`useTexture` loaders |
-| **Post-processing** | [@react-three/postprocessing 3](https://github.com/pmndrs/react-postprocessing) | bloom / color grade / DOF (P5) |
-| **State** | [Zustand 5](https://zustand.docs.pmnd.rs/) | local game + UI state |
-| **Styling** | [Tailwind CSS 4](https://tailwindcss.com/) | via PostCSS |
-| **Backend & data** | [Supabase](https://supabase.com/) (Postgres + Realtime) | persistence (P2) & multiplayer presence/broadcast (P3) |
-| **AI textures** | [Replicate](https://replicate.com/) | AI-generated diver wetsuit textures (P4) |
-| **Hosting** | [Vercel](https://vercel.com/) | serverless API routes + static assets, auto-deploy from `main` |
-| **Tooling** | ESLint 9 (`eslint-config-next`) | linting |
+| **Language** | [TypeScript 5](https://www.typescriptlang.org/) | Strict typing across app/components/lib |
+| **3D Engine** | [Three.js](https://threejs.org/) r184 | WebGL 3D rendering for immersive web experience. Also a very well established 3D JS library |
+| **3D / React** | [React Three Fiber 9](https://r3f.docs.pmnd.rs/) + [drei 10](https://drei.docs.pmnd.rs/) | Build high-performance 3D WebGL scenes declaratively using clean, reusable React components |
+| **Post-processing** | [@react-three/postprocessing 3](https://github.com/pmndrs/react-postprocessing) | Water distortion post processing |
+| **Styling** | [Tailwind CSS 4](https://tailwindcss.com/) | For frontend UI |
+| **Backend & data** | [Supabase](https://supabase.com/) (Postgres + Realtime) | Easy to use, scalable |
+| **AI textures** | [Replicate](https://replicate.com/) | Easily change available AI models from Replicate with 1 line code change |
+| **Hosting** | [Vercel](https://vercel.com/) | Serverless API routes, easy to use, scalable |
 
 ## AI wetsuit texture pipeline
 
