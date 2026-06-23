@@ -67,7 +67,7 @@ export function AudioController() {
       if (s.health >= 1 && prev < 1) {
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => {
-          playSfx("fullHealth");
+          if (useGame.getState().phase === "playing") playSfx("fullHealth");
           timer = null;
         }, FULL_SFX_DELAY);
       }
@@ -79,25 +79,27 @@ export function AudioController() {
     };
   }, []);
 
-  // Local player's emote.
+  // Local player's emote (only while in the meadow).
   useEffect(() => {
     let prevAt = useGame.getState().emoteAt;
     return useGame.subscribe((s) => {
       if (s.emoteAt !== prevAt) {
         prevAt = s.emoteAt;
-        if (s.emote) playSfx("emoji");
+        if (s.emote && s.phase === "playing") playSfx("emoji");
       }
     });
   }, []);
 
-  // Remote players' emotes.
+  // Remote players' emotes (only while in the meadow). `seen` is still advanced
+  // off-phase so we don't replay a backlog of emotes the moment we dive in.
   useEffect(() => {
     const seen = new Map<string, number>();
     for (const p of Object.values(useMultiplayer.getState().players)) seen.set(p.id, p.emoteAt);
     return useMultiplayer.subscribe((s) => {
+      const playing = useGame.getState().phase === "playing";
       for (const p of Object.values(s.players)) {
         const last = seen.get(p.id) ?? 0;
-        if (p.emote && p.emoteAt > last) playSfx("emoji");
+        if (p.emote && p.emoteAt > last && playing) playSfx("emoji");
         seen.set(p.id, p.emoteAt);
       }
     });

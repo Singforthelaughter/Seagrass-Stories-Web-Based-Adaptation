@@ -123,6 +123,11 @@ export async function connectMultiplayer() {
       if (id === myId) return;
       patchPlayer(id, { emote, emoteAt: Date.now() });
     })
+    .on("broadcast", { event: "texture" }, ({ payload }) => {
+      const { id, texture } = payload as { id: string; texture: string | null };
+      if (id === myId) return;
+      patchPlayer(id, { texture });
+    })
     .on("presence", { event: "sync" }, () => {
       const state = channel!.presenceState() as Record<
         string,
@@ -135,7 +140,10 @@ export async function connectMultiplayer() {
         const prev = useMultiplayer.getState().players[key];
         next[key] = {
           id: key,
-          texture: meta?.texture ?? null,
+          // Prefer a texture we've already learned (via presence or the live
+          // "texture" broadcast); fall back to this player's presence meta for
+          // late joiners. Avoids a sync wiping a freshly-broadcast outfit.
+          texture: prev?.texture ?? meta?.texture ?? null,
           emote: prev?.emote ?? null,
           emoteAt: prev?.emoteAt ?? 0,
         };
@@ -191,11 +199,15 @@ export function broadcastEmote(emote: string) {
 export async function setLocalTexture(texture: string | null) {
   localTexture = shareableTexture(texture);
   if (channel && useMultiplayer.getState().connected) {
+    // Presence carries the texture for late joiners (part of the roster)...
     try {
       await channel.track({ id: myId, texture: localTexture });
     } catch (e) {
       console.warn("Presence track failed:", e);
     }
+    // ...and a broadcast pushes the change to everyone already here, reliably
+    // (presence updates don't always re-fire a clean sync to peers).
+    channel.send({ type: "broadcast", event: "texture", payload: { id: myId, texture: localTexture } });
   }
 }
 

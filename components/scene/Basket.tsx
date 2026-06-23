@@ -121,6 +121,10 @@ function Basket({ id, pos, createdAt, playerId }: PlacedBasket) {
   const removed = useRef(false)
   const opened = useRef(false)
   const firstFrame = useRef(true)
+  // Whether this basket is ours. If it's ours we just tapped to place it, so we
+  // always want to hear it open — even if it mounts already-open because the
+  // DB→realtime round-trip (or clock skew) made it look older than it is.
+  const mine = playerId != null && playerId === useGame.getState().playerId
 
   useFrame(() => {
     // Drive all timing from createdAt (shared clock) so the drop / open / fade
@@ -140,12 +144,14 @@ function Basket({ id, pos, createdAt, playerId }: PlacedBasket) {
     const open = smootherstep(Math.min(Math.max((a - DROP_DUR - OPEN_DELAY) / OPEN_DUR, 0), 1))
     if (morphMesh) morphMesh.morphTargetInfluences![morphIndex] = open
     shadowGroup.current.scale.setScalar(open)
-    // Play the open SFX when the lid crosses half-open — but if the basket is
-    // already open on first sight (a late joiner seeing an old basket), arm
-    // silently so we don't fire a burst of sounds on load.
+    // Play the open SFX when the lid crosses half-open, but only on the seafloor
+    // (not during personalise). Ours always dings (we just placed it); others
+    // ding only if we actually saw the lid open — a basket already open on first
+    // sight (late joiner) arms silently so we don't fire a burst on load.
     if (!opened.current && open > 0.5) {
       opened.current = true
-      if (!firstFrame.current) playSfx("basketOpen")
+      const playing = useGame.getState().phase === "playing"
+      if (playing && (mine || !firstFrame.current)) playSfx("basketOpen")
     }
     firstFrame.current = false
     // At end of life (fires once): the owner deletes it from the shared world

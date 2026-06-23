@@ -158,18 +158,23 @@ function seededRand(seed: string) {
 }
 
 /** Seagrass grown around one anchor basket. */
-function Cluster({ id, pos, createdAt }: { id: string; pos: PlacedBasket["pos"]; createdAt: number }) {
+function Cluster({ id, pos, createdAt, playerId }: { id: string; pos: PlacedBasket["pos"]; createdAt: number; playerId: string | null }) {
   const { scenes, baseScale } = useSeagrassModels()
 
-  // Play the growing SFX once, when this cluster's first sprout starts growing.
-  // Skip baskets that were already grown before we arrived (late joiners): only
-  // schedule if the grow-start moment is still in the (near) future/now.
+  // Play the growing SFX once, when this cluster's first sprout starts growing,
+  // and only on the seafloor (not during personalise). If the basket is ours we
+  // just planted it, so always play — even if latency/clock skew makes the
+  // grow-start look already past. For others, skip baskets that were already
+  // grown before we arrived (late joiners).
   useEffect(() => {
+    const mine = playerId != null && playerId === useGame.getState().playerId
     const startsIn = createdAt + GROW_START_DELAY * 1000 - Date.now()
-    if (startsIn < -250) return // already growing/grown before we saw it
-    const t = setTimeout(() => playSfx("seaGrassGrowing"), Math.max(0, startsIn))
+    if (!mine && startsIn < -250) return // already growing/grown before we saw it
+    const t = setTimeout(() => {
+      if (useGame.getState().phase === "playing") playSfx("seaGrassGrowing")
+    }, Math.max(0, startsIn))
     return () => clearTimeout(t)
-  }, [createdAt])
+  }, [createdAt, playerId])
 
   // Seed from the basket id (not Math.random) so the layout is fixed for this
   // basket and never shuffles when the basket list is rebuilt by the sync.
@@ -208,7 +213,7 @@ export function BasketSeagrass() {
   return (
     <>
       {baskets.map((b) => (
-        <Cluster key={b.id} id={b.id} pos={b.pos} createdAt={b.createdAt} />
+        <Cluster key={b.id} id={b.id} pos={b.pos} createdAt={b.createdAt} playerId={b.playerId} />
       ))}
     </>
   )
