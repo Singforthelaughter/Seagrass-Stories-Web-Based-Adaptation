@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { getSupabase } from "./supabaseClient";
-import { useGame, type Vec3, type PlacedBasket } from "./store";
+import { useGame, isBasketActive, type Vec3, type PlacedBasket } from "./store";
 
 /**
  * Multiplayer sync over Supabase Realtime + Postgres.
@@ -83,7 +83,22 @@ async function loadBaskets() {
     createdAt: Date.parse(r.created_at as string),
     playerId: r.player_id as string,
   }));
+  // setBaskets drops anything past its lifetime, so expired rows never render or
+  // count toward health. Also garbage-collect our OWN expired rows from the DB
+  // (RLS only lets us delete our own), cleaning up zombies left when we last
+  // disconnected before they aged out.
   useGame.getState().setBaskets(baskets);
+  const me = useGame.getState().playerId;
+  if (me) {
+    const mineExpired = baskets
+      .filter((b) => !isBasketActive(b) && b.playerId === me)
+      .map((b) => b.id);
+    if (mineExpired.length) {
+      sb.from("world_baskets").delete().in("id", mineExpired).then(({ error: e }) => {
+        if (e) console.warn("Expired basket cleanup failed:", e.message);
+      });
+    }
+  }
 }
 
 export async function connectMultiplayer() {

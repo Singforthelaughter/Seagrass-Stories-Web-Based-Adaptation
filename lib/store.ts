@@ -3,6 +3,8 @@ import * as THREE from "three";
 import {
   BASKET_BATCH,
   BASKET_COOLDOWN,
+  BASKET_LIFETIME,
+  FADE_OUT_DUR,
   STARTING_SEAGRASS,
   SEAGRASS_PER_BASKET,
   SEAGRASS_FOR_FULL,
@@ -15,6 +17,12 @@ const healthFor = (numBaskets: number) =>
     0,
     Math.min(1, (STARTING_SEAGRASS + numBaskets * SEAGRASS_PER_BASKET) / SEAGRASS_FOR_FULL),
   );
+
+/** A basket is "active" until it has lived out its lifetime + fade-out. Expired
+ *  baskets (e.g. zombies left in the DB by an owner who disconnected before
+ *  their basket aged out) must not render or count toward health. */
+export const isBasketActive = (b: PlacedBasket, now = Date.now()) =>
+  (now - b.createdAt) / 1000 < BASKET_LIFETIME + FADE_OUT_DUR;
 
 export type Vec3 = [number, number, number];
 
@@ -166,7 +174,12 @@ export const useGame = create<GameState>((set, get) => ({
       ];
       return { baskets, health: healthFor(baskets.length) };
     }),
-  setBaskets: (baskets) => set({ baskets, health: healthFor(baskets.length) }),
+  setBaskets: (baskets) => {
+    // Drop any basket already past its lifetime (zombie rows from owners who
+    // left before their basket aged out) so they neither render nor inflate health.
+    const active = baskets.filter((b) => isBasketActive(b));
+    set({ baskets: active, health: healthFor(active.length) });
+  },
   removeBasket: (id) =>
     set((s) => {
       const baskets = s.baskets.filter((b) => b.id !== id);

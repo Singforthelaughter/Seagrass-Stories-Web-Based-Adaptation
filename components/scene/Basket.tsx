@@ -148,10 +148,13 @@ function Basket({ id, pos, createdAt, playerId }: PlacedBasket) {
       if (!firstFrame.current) playSfx("basketOpen")
     }
     firstFrame.current = false
-    // The owner removes it from the shared world once fully faded (fires once).
+    // At end of life (fires once): the owner deletes it from the shared world
+    // (DB → realtime removes it for everyone). Non-owners drop it locally too,
+    // so health and seagrass update even if the owner has since left.
     if (fade >= 1 && !removed.current) {
       removed.current = true
       if (playerId === useGame.getState().playerId) removeBasket(id)
+      else useGame.getState().removeBasket(id)
     }
   })
 

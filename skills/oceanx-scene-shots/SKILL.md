@@ -45,6 +45,12 @@ Meet the user where they are:
 - **"Read the project"** — the user points you at files ("read the README", "use the design doc", "look at this folder") or says "use the project". Read the README, design docs, and relevant code to work out the experience's name, what's on screen (UI, charts, simulator, game), and how it's used — then build the scene around that real on-screen content.
 - **Full prompt** — the user pastes a complete prompt; respect it and apply the photographic style.
 
+**Align with the current build (existing projects).** If the experience already has generated shots (e.g. images referenced in the README) or may have changed since they were made, treat the live code as the source of truth before rendering:
+
+- Read the README **and** check what actually changed — `git log --oneline -20` and `git diff` on the gameplay/UI code, or just open the current components — so the **on-screen content** matches how the experience looks *now* (real UI, controls, labels, charts, creatures).
+- Reconcile each shot against the current build: update the screen depiction for anything that drifted (e.g. a joystick replacing tap-to-move, a renamed meter, different on-screen animals) and drop scenes that no longer apply.
+- When replacing existing shots, render to the **same output paths** the README points to so the docs update in place.
+
 Then proceed with digest → setting/shot → generate.
 
 ### 1. Digest the project content

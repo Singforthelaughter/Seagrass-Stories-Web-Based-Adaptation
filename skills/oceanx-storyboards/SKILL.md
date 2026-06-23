@@ -43,6 +43,12 @@ The user can give you as little as they like — meet them where they are:
 - **"Read the project"** — the user points you at files ("read the README", "look at this folder", "use the design doc") or just says "use the project". Read the README, design docs, scripts, and relevant code to work out what the experience does, its screens/UI, and the user journey — then continue to the shot list. Prefer real project detail over guesses; if something key is missing, ask one focused question.
 - **Full prompt** — the user pastes a complete prompt or exact panel breakdown. Respect it; just apply the style and render.
 
+**Align with the current build (existing projects).** If the experience already has generated assets (e.g. images referenced in the README) or may have changed since they were made, treat the live code as the source of truth before rendering:
+
+- Read the README **and** check what actually changed — `git log --oneline -20` and `git diff` on the gameplay/UI code, or just open the current components — so the walkthrough reflects how the experience works *now*.
+- Reconcile the shot list against the current build: drop steps that no longer exist, add new beats, and fix details that drifted (controls, mechanics, on-screen creatures/labels). Don't reproduce a stale flow.
+- When replacing existing assets, render to the **same output paths** the README points to so the docs update in place.
+
 Then proceed with digest → shot list → generate.
 
 ### 1. Digest the experience
