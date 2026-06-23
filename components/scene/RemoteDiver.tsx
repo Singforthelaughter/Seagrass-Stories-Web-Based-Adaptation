@@ -73,7 +73,7 @@ export function RemoteDiver({
     const skinMat = make(skinD, skinN, skinORM);
     const propsMat = make(propsD, propsN, propsORM);
     const sMat = new THREE.MeshStandardMaterial({
-      color: "#000000", // default black; switches to white when a texture applies
+      color: "#cccccc", // default light grey; switches to white when a texture applies
       roughness: 0.5,
       metalness: 0,
       envMapIntensity: 0.8,
@@ -128,7 +128,7 @@ export function RemoteDiver({
     if (!texture) {
       mat.map?.dispose();
       mat.map = null;
-      mat.color.set("#000000"); // default: plain black suit
+      mat.color.set("#cccccc"); // default: plain light-grey suit
       mat.needsUpdate = true;
       return;
     }
